@@ -44,15 +44,19 @@ function M.setup(user_config)
     M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
 	
     -- Setup logging
+    -- Force debug logging during troubleshooting
+    M.config.log.level = "DEBUG"
+    M.config.log.enabled = true
+    
     if M.config.log.enabled then
         -- Set default log file path if none provided
         if not M.config.log.file then
-            M.config.log.file = vim.fn.stdpath("state") .. "/log/ai-diagnostics.log"
+            M.config.log.file = vim.fn.stdpath("cache") .. "/ai-diagnostics-debug.log"
         end
         
         local ok, err = pcall(function()
             log.setup({
-                level = log.levels[M.config.log.level] or log.levels.INFO,
+                level = log.levels.DEBUG,  -- Force DEBUG level
                 file = M.config.log.file,
                 max_size = M.config.log.max_size
             })
@@ -140,9 +144,19 @@ function M.get_buffer_diagnostics(bufnr)
     end
 
     local diagnostics = vim.diagnostic.get(bufnr)
-    log.debug(string.format("Got %d diagnostics for buffer %d", #diagnostics, bufnr))
-	
-	if not diagnostics or #diagnostics == 0 then
+    log.debug(string.format("Raw diagnostics count: %d", #diagnostics))
+    
+    -- Log each diagnostic for debugging
+    for i, diag in ipairs(diagnostics) do
+        log.debug(string.format("Diagnostic %d: severity=%s, message=%s, line=%d", 
+            i,
+            vim.diagnostic.severity[diag.severity],
+            diag.message,
+            diag.range.start.line
+        ))
+    end
+    
+    if not diagnostics or #diagnostics == 0 then
 		log.debug("No diagnostics found for buffer " .. tostring(bufnr))
 		return ""
 	end

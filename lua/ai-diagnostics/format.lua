@@ -74,9 +74,15 @@ end
 ---@return string Formatted diagnostic output
 ---@throws "Mismatched array lengths" when input arrays have different lengths
 function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
-	if #diagnostics == 0 then
-		return ""
-	end
+    log.debug(string.format("Formatting %d diagnostics", #diagnostics))
+    
+    if #diagnostics == 0 then
+        log.debug("No diagnostics to format")
+        return ""
+    end
+
+    local file_groups = grouping.group_by_file(diagnostics, contexts, filenames)
+    log.debug(string.format("Grouped into %d files", #vim.tbl_keys(file_groups)))
 
 	local output = {}
 	local file_groups = grouping.group_by_file(diagnostics, contexts, filenames)
