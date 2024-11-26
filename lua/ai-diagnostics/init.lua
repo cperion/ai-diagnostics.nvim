@@ -64,7 +64,7 @@ function M.get_buffer_diagnostics(bufnr)
 		return ""
 	end
     local diagnostics = vim.diagnostic.get(bufnr)
-    if #diagnostics == 0 then
+    if not diagnostics or #diagnostics == 0 then
         return ""
     end
 
@@ -85,14 +85,20 @@ end
 ---@return string Formatted diagnostic output for all buffers
 function M.get_workspace_diagnostics()
 	local all_diagnostics = {}
+	local has_content = false
 
 	for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
 		if vim.api.nvim_buf_is_loaded(bufnr) then
 			local buf_diagnostics = M.get_buffer_diagnostics(bufnr)
 			if buf_diagnostics ~= "" then
 				table.insert(all_diagnostics, buf_diagnostics)
+				has_content = true
 			end
 		end
+	end
+
+	if not has_content then
+		return "No diagnostics found in workspace"
 	end
 
 	return table.concat(all_diagnostics, "\n\n")
