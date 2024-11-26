@@ -125,8 +125,14 @@ function M.close_window()
 
             -- Hide or unload the buffer if it's not in use by any other windows
             if not buf_in_use then
-                vim.api.nvim_buf_set_option(M.state.buf_id, 'bufhidden', 'hide')
-                vim.api.nvim_buf_set_option(M.state.buf_id, 'buflisted', false)
+                local lines = vim.api.nvim_buf_get_lines(M.state.buf_id, 0, -1, false)
+                if #lines == 1 and lines[1] == "" then
+                    vim.api.nvim_buf_delete(M.state.buf_id, { force = true })
+                    M.state.buf_id = nil
+                else
+                    vim.api.nvim_buf_set_option(M.state.buf_id, 'bufhidden', 'hide')
+                    vim.api.nvim_buf_set_option(M.state.buf_id, 'buflisted', false)
+                end
             end
         end
 
