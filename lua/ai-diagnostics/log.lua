@@ -49,8 +49,8 @@ local function write_to_file(msg)
 		return
 	end
 
-	-- Always open in write mode to overwrite
-	local file = io.open(config.file, "w")
+	-- Open in append mode to preserve existing logs
+	local file = io.open(config.file, "a")
 	if not file then
 		vim.notify(string.format("Failed to open log file '%s' for writing", config.file), vim.log.levels.ERROR)
 		is_writing = false
