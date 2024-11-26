@@ -103,11 +103,11 @@ function M.setup(opts)
 			local log_dir = vim.fn.fnamemodify(config.file, ":h")
 
 			-- First check if the directory exists and is actually a directory
-			local dir_stat = vim.loop.fs_stat(log_dir)
+			local dir_stat = vim.uv.fs_stat(log_dir)
 			if dir_stat then
 				if dir_stat.type ~= "directory" then
 					-- If it exists but is not a directory, try to remove it
-					local success, err = vim.loop.fs_unlink(log_dir)
+					local success = vim.uv.fs_unlink(log_dir)
 					if not success then
 						error(string.format("Cannot create log directory: '%s' exists and is not a directory", log_dir))
 						return

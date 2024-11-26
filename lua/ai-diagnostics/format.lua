@@ -1,7 +1,6 @@
 local log = require("ai-diagnostics.log")
 local utils = require("ai-diagnostics.utils")
 local grouping = require("ai-diagnostics.grouping")
-local config = require("ai-diagnostics.config")
 local M = {}
 
 ---Group diagnostics by line and merge overlapping contexts

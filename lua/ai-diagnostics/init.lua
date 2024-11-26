@@ -16,7 +16,8 @@ local M = {
 
 ---Validate configuration table
 ---@param cfg table Configuration to validate
----@return boolean, string? valid, error_message
+---@return boolean valid
+---@return string? error_message
 local function validate_config(cfg)
 	if cfg.before_lines and type(cfg.before_lines) ~= "number" then
 		return false, "before_lines must be a number"
@@ -136,7 +137,7 @@ function M.get_buffer_diagnostics(bufnr)
 	end
 
 	-- Check for LSP clients
-	local clients = vim.lsp.get_active_clients({ bufnr = bufnr })
+	local clients = vim.lsp.get_clients({ bufnr = bufnr })
 	log.debug(string.format("Found %d LSP clients for buffer", #clients))
 	if #clients == 0 then
 		log.debug("No LSP clients attached to buffer " .. tostring(bufnr))

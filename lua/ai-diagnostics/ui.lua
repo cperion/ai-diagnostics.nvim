@@ -62,10 +62,10 @@ local function create_or_get_buffer()
 	local bufnr = vim.api.nvim_create_buf(false, true)
 
 	-- Set buffer options first
-	pcall(vim.api.nvim_buf_set_option, bufnr, "buftype", "nofile")
-	pcall(vim.api.nvim_buf_set_option, bufnr, "bufhidden", "wipe")
-	pcall(vim.api.nvim_buf_set_option, bufnr, "swapfile", false)
-	pcall(vim.api.nvim_buf_set_option, bufnr, "modifiable", true)
+	vim.bo[bufnr].buftype = "nofile"
+	vim.bo[bufnr].bufhidden = "wipe"
+	vim.bo[bufnr].swapfile = false
+	vim.bo[bufnr].modifiable = true
 
 	-- Defer buffer naming
 	defer_fn(function()
@@ -139,11 +139,11 @@ function M.open_window(position)
 		M.state.position = position
 
 		-- Set window options
-		vim.api.nvim_win_set_option(win_id, "number", false)
-		vim.api.nvim_win_set_option(win_id, "relativenumber", false)
-		vim.api.nvim_win_set_option(win_id, "wrap", false)
-		vim.api.nvim_win_set_option(win_id, "winfixwidth", true)
-		vim.api.nvim_win_set_option(win_id, "winfixheight", true)
+		vim.wo[win_id].number = false
+		vim.wo[win_id].relativenumber = false
+		vim.wo[win_id].wrap = false
+		vim.wo[win_id].winfixwidth = true
+		vim.wo[win_id].winfixheight = true
 
 		-- Set buffer options
 		vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
