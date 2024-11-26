@@ -3,8 +3,12 @@ local M = {}
 -- Buffer name for the diagnostics window
 local BUFFER_NAME = "AI-Diagnostics"
 
--- Store the window ID to manage it
-M.win_id = nil
+-- Store window state
+M.state = {
+    win_id = nil,
+    position = nil,  -- Remembers last position used
+    is_open = false
+}
 
 ---Create or get the diagnostics buffer
 ---@return number Buffer number
@@ -49,9 +53,12 @@ function M.open_window(position)
         return
     end
     
+    -- Store position preference
+    M.state.position = position
+    
     -- If window exists, focus it
-    if M.win_id and vim.api.nvim_win_is_valid(M.win_id) then
-        vim.api.nvim_set_current_win(M.win_id)
+    if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
+        vim.api.nvim_set_current_win(M.state.win_id)
         return
     end
     
@@ -61,8 +68,9 @@ function M.open_window(position)
     local cmd = position == 'bottom' and 'botright split' or 'botright vsplit'
     vim.cmd(cmd)
     
-    -- Store window ID
-    M.win_id = vim.api.nvim_get_current_win()
+    -- Store window state
+    M.state.win_id = vim.api.nvim_get_current_win()
+    M.state.is_open = true
     
     -- Set window options
     vim.api.nvim_win_set_buf(M.win_id, bufnr)
@@ -80,10 +88,27 @@ end
 
 ---Close the diagnostics window if it exists
 function M.close_window()
-    if M.win_id and vim.api.nvim_win_is_valid(M.win_id) then
-        vim.api.nvim_win_close(M.win_id, true)
+    if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
+        vim.api.nvim_win_close(M.state.win_id, true)
     end
-    M.win_id = nil
+    M.state.win_id = nil
+    M.state.is_open = false
+end
+
+---Toggle the diagnostics window
+---@param position string|nil "bottom" or "right" (defaults to last used position or "bottom")
+function M.toggle_window(position)
+    if M.state.is_open then
+        M.close_window()
+    else
+        M.open_window(position or M.state.position)
+    end
+end
+
+---Check if diagnostics window is currently open
+---@return boolean
+function M.is_open()
+    return M.state.is_open and M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id)
 end
 
 ---Update the content of the diagnostics buffer
