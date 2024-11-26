@@ -45,22 +45,31 @@ function M.setup(user_config)
 	
 	-- Setup logging
 	if M.config.log.enabled then
-		-- Ensure log directory exists
+		-- Create full directory path
 		local log_dir = vim.fn.fnamemodify(M.config.log.file, ":h")
-		vim.fn.mkdir(log_dir, "p")
-		
-		local ok, err = pcall(function()
-			log.setup({
-				level = log.levels[M.config.log.level] or log.levels.INFO,
-				file = M.config.log.file,
-				max_size = M.config.log.max_size
-			})
+		local mkdir_ok, mkdir_err = pcall(function()
+			-- Use recursive directory creation
+			vim.fn.mkdir(log_dir, "p")
 		end)
 		
-		if not ok then
-			vim.notify("Failed to initialize logging: " .. tostring(err), vim.log.levels.WARN)
+		if not mkdir_ok then
+			vim.notify("Failed to create log directory: " .. tostring(mkdir_err), vim.log.levels.WARN)
+			-- Disable logging if we can't create the directory
+			M.config.log.enabled = false
 		else
-			log.info("AI Diagnostics plugin initialized")
+			local ok, err = pcall(function()
+				log.setup({
+					level = log.levels[M.config.log.level] or log.levels.INFO,
+					file = M.config.log.file,
+					max_size = M.config.log.max_size
+				})
+			end)
+			
+			if not ok then
+				vim.notify("Failed to initialize logging: " .. tostring(err), vim.log.levels.WARN)
+			else
+				log.info("AI Diagnostics plugin initialized")
+			end
 		end
 	end
 
