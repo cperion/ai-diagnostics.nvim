@@ -21,6 +21,8 @@ local function merge_contexts(diagnostics, contexts)
 					is_context = true,
 				}
 			end
+			
+			-- Only add diagnostic if the line is explicitly marked as a diagnostic line
 			if line.is_diagnostic then
 				table.insert(line_map[line.number].diagnostics, diagnostic)
 			end
