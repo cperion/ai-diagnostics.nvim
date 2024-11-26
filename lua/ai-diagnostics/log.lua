@@ -75,8 +75,12 @@ function M.setup(opts)
             
             -- Create full directory path
             local log_dir = vim.fn.fnamemodify(config.file, ":h")
-            -- Use recursive directory creation with full path
+            -- Ensure parent directories exist first
+            local parent_dir = vim.fn.fnamemodify(log_dir, ":h")
             local ok, err = pcall(function()
+                -- Create parent directories first
+                vim.fn.mkdir(parent_dir, "p")
+                -- Then create the log directory
                 vim.fn.mkdir(log_dir, "p")
             end)
             
