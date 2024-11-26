@@ -63,23 +63,22 @@ function M.get_buffer_diagnostics(bufnr)
 		vim.notify("Invalid buffer", vim.log.levels.ERROR)
 		return ""
 	end
-	local diagnostics = vim.diagnostic.get(bufnr)
-	if #diagnostics == 0 then
-		return ""
-	end
+    local diagnostics = vim.diagnostic.get(bufnr)
+    if #diagnostics == 0 then
+        return ""
+    end
 
-	local formatted = {}
-	local filename = vim.api.nvim_buf_get_name(bufnr)
-	if filename ~= "" then
-		table.insert(formatted, string.format("File: %s\n", vim.fn.fnamemodify(filename, ":.")))
-	end
+    local contexts = {}
+    local filenames = {}
+    local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":.")
+    
+    for _, diagnostic in ipairs(diagnostics) do
+        local diag_context = context.get_diagnostic_context(bufnr, diagnostic, M.config)
+        table.insert(contexts, diag_context)
+        table.insert(filenames, filename)
+    end
 
-	for _, diagnostic in ipairs(diagnostics) do
-		local diag_context = context.get_diagnostic_context(bufnr, diagnostic, M.config)
-		table.insert(formatted, format.format_diagnostic_with_context(diagnostic, diag_context))
-	end
-
-	return table.concat(formatted, "\n\n")
+    return format.format_diagnostic_with_context(diagnostics, contexts, filenames)
 end
 
 ---Get diagnostics for all buffers

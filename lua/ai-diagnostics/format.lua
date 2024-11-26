@@ -1,6 +1,29 @@
 local utils = require("ai-diagnostics.utils")
 local M = {}
 
+---Group diagnostics and contexts by filename
+---@param diagnostics table[] Array of diagnostics
+---@param contexts table[] Array of context information
+---@param filenames string[] Array of filenames
+---@return table Grouped diagnostics by file
+local function group_by_file(diagnostics, contexts, filenames)
+    local file_groups = {}
+    
+    for i, diagnostic in ipairs(diagnostics) do
+        local filename = filenames[i]
+        if not file_groups[filename] then
+            file_groups[filename] = {
+                diagnostics = {},
+                contexts = {}
+            }
+        end
+        table.insert(file_groups[filename].diagnostics, diagnostic)
+        table.insert(file_groups[filename].contexts, contexts[i])
+    end
+    
+    return file_groups
+end
+
 ---Group diagnostics by line and merge overlapping contexts
 ---@param diagnostics table[] Array of diagnostics
 ---@param contexts table[] Array of context information for each diagnostic
@@ -68,27 +91,41 @@ local function format_inline_diagnostic(diagnostic)
 end
 
 ---Format diagnostics with merged context
----@param diagnostic table The diagnostic to format
----@param context table[] Array of context lines with line numbers and markers
+---@param diagnostics table[] Array of diagnostics
+---@param contexts table[] Array of context lines with line numbers and markers
+---@param filenames string[] Array of filenames
 ---@return string Formatted diagnostic output
-function M.format_diagnostic_with_context(diagnostics, contexts)
+function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
     if #diagnostics == 0 then return "" end
     
-    local merged = merge_contexts(diagnostics, contexts)
     local output = {}
+    local file_groups = group_by_file(diagnostics, contexts, filenames)
     
-    for _, group in ipairs(merged) do
-        table.insert(output, "")  -- Add blank line between groups
-        for _, line in ipairs(group.lines) do
-            local line_content = utils.truncate_string(line.content)
-            if #line.diagnostics > 0 then
-                local diag_messages = {}
-                for _, diag in ipairs(line.diagnostics) do
-                    table.insert(diag_messages, format_inline_diagnostic(diag))
+    -- Sort filenames for consistent output
+    local sorted_files = vim.tbl_keys(file_groups)
+    table.sort(sorted_files)
+    
+    for _, filename in ipairs(sorted_files) do
+        local group = file_groups[filename]
+        -- Add filename header
+        table.insert(output, string.format("\nFile: %s", filename))
+        
+        -- Format merged context for this file's diagnostics
+        local merged = merge_contexts(group.diagnostics, group.contexts)
+        
+        for _, block in ipairs(merged) do
+            table.insert(output, "")  -- Add blank line between blocks
+            for _, line in ipairs(block.lines) do
+                local line_content = utils.truncate_string(line.content)
+                if #line.diagnostics > 0 then
+                    local diag_messages = {}
+                    for _, diag in ipairs(line.diagnostics) do
+                        table.insert(diag_messages, format_inline_diagnostic(diag))
+                    end
+                    line_content = line_content .. " " .. table.concat(diag_messages, " ")
                 end
-                line_content = line_content .. " " .. table.concat(diag_messages, " ")
+                table.insert(output, string.format("%4d: %s", line.number, line_content))
             end
-            table.insert(output, string.format("%4d: %s", line.number, line_content))
         end
     end
     
