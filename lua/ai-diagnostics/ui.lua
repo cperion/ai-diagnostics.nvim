@@ -51,15 +51,15 @@ function M.setup()
         end,
     })
 
-    -- Add buffer cleanup on window close
-    vim.api.nvim_create_autocmd('WinClosed', {
-        callback = function(args)
-            local win_id = tonumber(args.match)
-            if win_id == M.state.win_id then
-                M.state.win_id = nil
-            end
-        end,
-    })
+    -- Add buffer cleanup on window close - REMOVED
+    -- vim.api.nvim_create_autocmd('WinClosed', {
+    --     callback = function(args)
+    --         local win_id = tonumber(args.match)
+    --         if win_id == M.state.win_id then
+    --             M.state.win_id = nil
+    --         end
+    --     end,
+    -- })
 end
 
 function M.is_open()
@@ -74,8 +74,7 @@ function M.open_window(position)
     
     -- If window exists but position changed, close it
     if M.is_open() and M.state.position ~= position then
-        vim.api.nvim_win_close(M.state.win_id, true)
-        M.state.win_id = nil
+        M.close_window()
     end
 
     -- Create window if needed
@@ -105,17 +104,23 @@ function M.open_window(position)
     end
 end
 
+-- Modified close_window() function
 function M.close_window()
     if M.is_open() then
         local win_id = M.state.win_id
         log.debug("Closing window - Initial state: is_open=" .. tostring(M.is_open()) .. ", win_id=" .. tostring(win_id) .. ", buf_id=" .. tostring(M.state.buf_id))
-        
+
         -- Close the window
         vim.api.nvim_win_close(win_id, true)
-        
+
+        -- Delete the buffer if it's still valid
+        if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
+            vim.api.nvim_buf_delete(M.state.buf_id, { force = true })
+        end
+
         -- Reset state
         M.state.win_id = nil
-        
+
         log.debug("Window closed - Final state: is_open=" .. tostring(M.is_open()) .. ", win_id=" .. tostring(M.state.win_id) .. ", buf_id=" .. tostring(M.state.buf_id) .. ", old_win_id=" .. tostring(win_id))
     end
 end
