@@ -86,9 +86,9 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
     log.debug(string.format("Grouped into %d files", #vim.tbl_keys(file_groups)))
 
 	local output = {}
-	local file_groups = grouping.group_by_file(diagnostics, contexts, filenames)
+	log.debug(string.format("Grouped into %d files", #vim.tbl_keys(file_groups)))
 
-	-- Sort filenames for consistent output
+	-- Sort filenames for consistent output 
 	local sorted_files = vim.tbl_keys(file_groups)
 	table.sort(sorted_files)
 
