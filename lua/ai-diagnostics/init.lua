@@ -14,19 +14,50 @@ local M = {
 	config = {},
 }
 
+---Validate configuration table
+---@param cfg table Configuration to validate
+---@return boolean, string? valid, error_message
+local function validate_config(cfg)
+    if cfg.before_lines and type(cfg.before_lines) ~= "number" then
+        return false, "before_lines must be a number"
+    end
+    if cfg.after_lines and type(cfg.after_lines) ~= "number" then
+        return false, "after_lines must be a number"
+    end
+    if cfg.max_line_length and type(cfg.max_line_length) ~= "number" then
+        return false, "max_line_length must be a number"
+    end
+    return true
+end
+
 ---Setup the plugin with user configuration
 ---@param user_config table|nil Optional configuration table with before_lines and after_lines
 function M.setup(user_config)
-	M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
+    if user_config then
+        local valid, err = validate_config(user_config)
+        if not valid then
+            vim.notify("AI Diagnostics config error: " .. err, vim.log.levels.ERROR)
+            return
+        end
+    end
+    
+    M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
 	
 	-- Setup logging
 	if M.config.log.enabled then
-		log.setup({
-			level = log.levels[M.config.log.level],
-			file = M.config.log.file,
-			max_size = M.config.log.max_size
-		})
-		log.info("AI Diagnostics plugin initialized")
+		local ok, err = pcall(function()
+			log.setup({
+				level = log.levels[M.config.log.level] or log.levels.INFO,
+				file = M.config.log.file,
+				max_size = M.config.log.max_size
+			})
+		end)
+		
+		if not ok then
+			vim.notify("Failed to initialize logging: " .. tostring(err), vim.log.levels.WARN)
+		else
+			log.info("AI Diagnostics plugin initialized")
+		end
 	end
 
 	-- Set up diagnostic change autocmd if live updates enabled
@@ -71,8 +102,9 @@ end
 function M.get_buffer_diagnostics(bufnr)
 	bufnr = bufnr or vim.api.nvim_get_current_buf()
 	if not vim.api.nvim_buf_is_valid(bufnr) then
-		log.error("Invalid buffer: " .. tostring(bufnr))
-		vim.notify("Invalid buffer", vim.log.levels.ERROR)
+		local msg = string.format("Invalid buffer %s. Buffer may have been closed or deleted.", tostring(bufnr))
+		log.error(msg)
+		vim.notify(msg, vim.log.levels.ERROR)
 		return ""
 	end
 	
