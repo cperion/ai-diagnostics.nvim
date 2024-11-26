@@ -123,10 +123,10 @@ function M.close_window()
                 end
             end
 
-            -- Delete the buffer if it's not in use by any other windows
+            -- Hide or unload the buffer if it's not in use by any other windows
             if not buf_in_use then
-                vim.api.nvim_buf_delete(M.state.buf_id, { force = true })
-                M.state.buf_id = nil
+                vim.api.nvim_buf_set_option(M.state.buf_id, 'bufhidden', 'hide')
+                vim.api.nvim_buf_set_option(M.state.buf_id, 'buflisted', false)
             end
         end
 
