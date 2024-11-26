@@ -106,48 +106,40 @@ function M.open_window(position)
 	-- Create or get buffer
 	local bufnr = create_or_get_buffer()
 
-	-- Calculate window dimensions
-	local width = position == "right" and math.floor(vim.o.columns * 0.3) or 0
-	local height = position == "bottom" and 10 or 0
-
-	-- Create window with specific configuration
-	local win_opts = {
-		relative = "editor",
-		style = "minimal",
-		border = "single",
-	}
-
+	-- Create split window
 	if position == "bottom" then
-		win_opts.width = vim.o.columns
-		win_opts.height = height
-		win_opts.row = vim.o.lines - height - 2 -- Account for status/cmdline
-		win_opts.col = 0
+		vim.cmd('botright new')
 	else -- right
-		win_opts.width = width
-		win_opts.height = vim.o.lines - 2 -- Account for status/cmdline
-		win_opts.row = 0
-		win_opts.col = vim.o.columns - width
+		vim.cmd('vertical botright new')
 	end
 
-	-- Create the window
-	local win_id = vim.api.nvim_open_win(bufnr, false, win_opts)
+	-- Get the newly created window ID
+	local win_id = vim.api.nvim_get_current_win()
 
-	if win_id and vim.api.nvim_win_is_valid(win_id) then
-		-- Store window state
-		M.state.win_id = win_id
-		M.state.is_open = true
-		M.state.position = position
+	-- Set buffer for the window
+	vim.api.nvim_win_set_buf(win_id, bufnr)
 
-		-- Set window options
-		vim.wo[win_id].number = false
-		vim.wo[win_id].relativenumber = false
-		vim.wo[win_id].wrap = false
-		vim.wo[win_id].winfixwidth = true
-		vim.wo[win_id].winfixheight = true
+	-- Store window state
+	M.state.win_id = win_id
+	M.state.is_open = true
+	M.state.position = position
 
-		-- Set buffer options
-		vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
-		vim.api.nvim_buf_set_option(bufnr, "bufhidden", "wipe")
+	-- Set window options
+	vim.wo[win_id].number = false
+	vim.wo[win_id].relativenumber = false
+	vim.wo[win_id].wrap = false
+	vim.wo[win_id].winfixwidth = true
+	vim.wo[win_id].winfixheight = true
+
+	-- Set buffer options
+	vim.bo[bufnr].modifiable = false
+	vim.bo[bufnr].bufhidden = "wipe"
+
+	-- Set a reasonable height/width for the split
+	if position == "bottom" then
+		vim.api.nvim_win_set_height(win_id, 10)
+	else
+		vim.api.nvim_win_set_width(win_id, math.floor(vim.o.columns * 0.3))
 	end
 end
 
@@ -157,15 +149,11 @@ function M.close_window()
 		local bufnr = vim.api.nvim_win_get_buf(M.state.win_id)
 
 		-- Close window
-		pcall(vim.api.nvim_win_close, M.state.win_id, true)
+		vim.api.nvim_win_close(M.state.win_id, true)
 
 		-- Clean up buffer if it exists and is valid
 		if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
-			vim.schedule(function()
-				if not is_buffer_in_use(bufnr) then
-					pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
-				end
-			end)
+			vim.api.nvim_buf_delete(bufnr, { force = true })
 		end
 	end
 
