@@ -123,7 +123,9 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 		end
 	end
 
-	return table.concat(output, "\n")
+	local formatted_output = table.concat(output, "\n")
+	log.debug(string.format("Formatted output length: %d", #formatted_output))
+	return formatted_output
 end
 
 return M
