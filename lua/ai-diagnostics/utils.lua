@@ -1,5 +1,12 @@
 local M = {}
 
+---Sanitize filename by removing potentially problematic characters
+---@param filename string The filename to sanitize
+---@return string Sanitized filename
+function M.sanitize_filename(filename)
+    return filename:gsub("[\n\r]", "")
+end
+
 ---Convert diagnostic severity to string
 ---@param severity number Diagnostic severity level (1-4)
 ---@return string Severity name
