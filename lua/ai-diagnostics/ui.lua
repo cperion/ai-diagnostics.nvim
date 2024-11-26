@@ -40,10 +40,11 @@ function M.setup()
     
     -- Set buffer options
     vim.api.nvim_set_option_value('buftype', 'nofile', { buf = buf })
-    vim.api.nvim_set_option_value('bufhidden', 'hide', { buf = buf })
+    vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = buf }) -- Change from 'hide' to 'wipe'
     vim.api.nvim_set_option_value('swapfile', false, { buf = buf })
     vim.api.nvim_set_option_value('buflisted', false, { buf = buf })
     vim.api.nvim_set_option_value('modifiable', true, { buf = buf })
+    vim.api.nvim_set_option_value('filetype', 'ai-diagnostics', { buf = buf }) -- Add filetype
 end
 
 -- Helper function to defer and safely execute a function
@@ -200,18 +201,31 @@ function M.close_window()
         tostring(M.state.win_id), 
         tostring(M.state.buf_id)))
 
+    -- Store buffer ID before closing
+    local buf_id = M.state.buf_id
+
     if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
         log.debug(string.format("Closing window: %s", tostring(M.state.win_id)))
-        -- Close window but keep buffer
+        -- Close window
         vim.api.nvim_win_close(M.state.win_id, true)
     else
         log.debug("No valid window to close")
     end
 
-    -- Reset window state but keep buffer_id
+    -- Clean up the buffer if it exists and is valid
+    if buf_id and vim.api.nvim_buf_is_valid(buf_id) then
+        log.debug(string.format("Cleaning up buffer: %s", tostring(buf_id)))
+        pcall(vim.api.nvim_buf_delete, buf_id, { force = true })
+    end
+
+    -- Reset all state
     local old_win_id = M.state.win_id
-    M.state.win_id = nil
-    M.state.is_open = false
+    M.state = {
+        win_id = nil,
+        buf_id = nil,
+        position = nil,
+        is_open = false
+    }
 
     log.debug(string.format("Window closed - Final state: is_open=%s, win_id=%s, buf_id=%s, old_win_id=%s", 
         tostring(M.state.is_open), 
