@@ -11,8 +11,20 @@ function M.get_diagnostic_context(bufnr, diagnostic, config)
 		return {}
 	end
 
-	local start_line = diagnostic.range.start.line
-	local end_line = diagnostic.range["end"].line
+	-- Add validation for diagnostic structure
+	if not diagnostic then
+		vim.notify("Invalid diagnostic", vim.log.levels.ERROR)
+		return {}
+	end
+
+	-- Ensure diagnostic has range information
+	local range = diagnostic.range or {}
+	local start_pos = range.start or {}
+	local end_pos = range["end"] or {}
+
+	-- Get line numbers with defaults
+	local start_line = start_pos.line or 0
+	local end_line = end_pos.line or start_line
 
 	-- Calculate context range with bounds checking
 	local line_count = vim.api.nvim_buf_line_count(bufnr)
