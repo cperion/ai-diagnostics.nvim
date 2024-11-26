@@ -1,3 +1,4 @@
+local log = require("ai-diagnostics.log")
 local M = {}
 
 ---Get context lines around a diagnostic
