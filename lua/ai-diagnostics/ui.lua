@@ -34,6 +34,16 @@ function M.setup()
         end,
         desc = 'Cleanup AI Diagnostics buffers and windows'
     })
+
+    -- Create new buffer if none exists
+    local buf = vim.api.nvim_create_buf(false, true)
+    
+    -- Set buffer options
+    vim.api.nvim_set_option_value('buftype', 'nofile', { buf = buf })
+    vim.api.nvim_set_option_value('bufhidden', 'hide', { buf = buf })
+    vim.api.nvim_set_option_value('swapfile', false, { buf = buf })
+    vim.api.nvim_set_option_value('buflisted', false, { buf = buf })
+    vim.api.nvim_set_option_value('modifiable', true, { buf = buf })
 end
 
 -- Helper function to defer and safely execute a function
