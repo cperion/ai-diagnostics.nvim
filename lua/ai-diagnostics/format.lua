@@ -29,8 +29,9 @@ local function merge_contexts(diagnostics, contexts)
 				}
 			end
 			
-			-- Only add diagnostic if the line is explicitly marked as a diagnostic line
-			if line.is_diagnostic then
+			-- Check if this is the actual diagnostic line from the LSP
+			-- Use the diagnostic's range information instead of line.is_diagnostic
+			if diagnostic.range and line_number == diagnostic.range.start.line + 1 then
 				table.insert(line_map[line_number].diagnostics, diagnostic)
 			end
 			
