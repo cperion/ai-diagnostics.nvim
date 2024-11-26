@@ -17,7 +17,7 @@ local M = {
 ---@param user_config table|nil Optional configuration table with before_lines and after_lines
 function M.setup(user_config)
 	M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
-	
+
 	-- Set up diagnostic change autocmd if live updates enabled
 	if M.config.live_updates then
 		vim.api.nvim_create_autocmd("DiagnosticChanged", {
@@ -29,28 +29,28 @@ function M.setup(user_config)
 			end,
 		})
 	end
-	
+
 	-- Create commands
-	vim.api.nvim_create_user_command('AIDiagnosticsShow', function(opts)
+	vim.api.nvim_create_user_command("AIDiagnosticsShow", function(opts)
 		M.show_diagnostics_window(opts.args)
 	end, {
-		nargs = '?',
+		nargs = "?",
 		complete = function()
-			return { 'bottom', 'right' }
-		end
+			return { "bottom", "right" }
+		end,
 	})
-	
-	vim.api.nvim_create_user_command('AIDiagnosticsClose', function()
+
+	vim.api.nvim_create_user_command("AIDiagnosticsClose", function()
 		M.close_diagnostics_window()
 	end, {})
-	
-	vim.api.nvim_create_user_command('AIDiagnosticsToggle', function(opts)
+
+	vim.api.nvim_create_user_command("AIDiagnosticsToggle", function(opts)
 		M.toggle_diagnostics_window(opts.args)
 	end, {
-		nargs = '?',
+		nargs = "?",
 		complete = function()
-			return { 'bottom', 'right' }
-		end
+			return { "bottom", "right" }
+		end,
 	})
 end
 
@@ -63,22 +63,22 @@ function M.get_buffer_diagnostics(bufnr)
 		vim.notify("Invalid buffer", vim.log.levels.ERROR)
 		return ""
 	end
-    local diagnostics = vim.diagnostic.get(bufnr)
-    if not diagnostics or #diagnostics == 0 then
-        return ""
-    end
+	local diagnostics = vim.diagnostic.get(bufnr)
+	if not diagnostics or #diagnostics == 0 then
+		return ""
+	end
 
-    local contexts = {}
-    local filenames = {}
-    local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":.")
-    
-    for _, diagnostic in ipairs(diagnostics) do
-        local diag_context = context.get_diagnostic_context(bufnr, diagnostic, M.config)
-        table.insert(contexts, diag_context)
-        table.insert(filenames, filename)
-    end
+	local contexts = {}
+	local filenames = {}
+	local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":.")
 
-    return format.format_diagnostic_with_context(diagnostics, contexts, filenames)
+	for _, diagnostic in ipairs(diagnostics) do
+		local diag_context = context.get_diagnostic_context(bufnr, diagnostic, M.config)
+		table.insert(contexts, diag_context)
+		table.insert(filenames, filename)
+	end
+
+	return format.format_diagnostic_with_context(diagnostics, contexts, filenames)
 end
 
 ---Get diagnostics for all buffers
@@ -118,7 +118,7 @@ function M.close_diagnostics_window()
 end
 
 ---Toggle the diagnostics window
----@param position string|nil "bottom" or "right" (defaults to "bottom") 
+---@param position string|nil "bottom" or "right" (defaults to "bottom")
 function M.toggle_diagnostics_window(position)
 	if ui.is_open() then
 		ui.close_window()
