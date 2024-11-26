@@ -7,6 +7,7 @@
 local config = require("ai-diagnostics.config")
 local context = require("ai-diagnostics.context")
 local format = require("ai-diagnostics.format")
+local ui = require("ai-diagnostics.ui")
 
 local M = {
 	config = {},
@@ -16,6 +17,29 @@ local M = {
 ---@param user_config table|nil Optional configuration table with before_lines and after_lines
 function M.setup(user_config)
 	M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
+	
+	-- Create commands
+	vim.api.nvim_create_user_command('AIDiagnosticsShow', function(opts)
+		M.show_diagnostics_window(opts.args)
+	end, {
+		nargs = '?',
+		complete = function()
+			return { 'bottom', 'right' }
+		end
+	})
+	
+	vim.api.nvim_create_user_command('AIDiagnosticsClose', function()
+		M.close_diagnostics_window()
+	end, {})
+	
+	vim.api.nvim_create_user_command('AIDiagnosticsToggle', function(opts)
+		M.toggle_diagnostics_window(opts.args)
+	end, {
+		nargs = '?',
+		complete = function()
+			return { 'bottom', 'right' }
+		end
+	})
 end
 
 ---Get formatted diagnostics for a buffer
@@ -61,6 +85,29 @@ function M.get_workspace_diagnostics()
 	end
 
 	return table.concat(all_diagnostics, "\n\n")
+end
+
+---Show diagnostics in a split window
+---@param position string|nil "bottom" or "right" (defaults to "bottom")
+function M.show_diagnostics_window(position)
+	local content = M.get_workspace_diagnostics()
+	ui.open_window(position)
+	ui.update_content(content)
+end
+
+---Close the diagnostics window
+function M.close_diagnostics_window()
+	ui.close_window()
+end
+
+---Toggle the diagnostics window
+---@param position string|nil "bottom" or "right" (defaults to "bottom") 
+function M.toggle_diagnostics_window(position)
+	if ui.win_id and vim.api.nvim_win_is_valid(ui.win_id) then
+		ui.close_window()
+	else
+		M.show_diagnostics_window(position)
+	end
 end
 
 return M
