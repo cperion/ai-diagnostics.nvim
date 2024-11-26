@@ -87,8 +87,11 @@ M.state = {
 ---Create or get the diagnostics buffer
 ---@return number|nil Buffer number
 local function create_or_get_buffer()
+    log.debug("Attempting to create or get buffer")
+
     -- First, check if existing buffer is valid
     if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
+        log.debug(string.format("Returning existing valid buffer: %s", tostring(M.state.buf_id)))
         return M.state.buf_id
     end
 
@@ -97,6 +100,7 @@ local function create_or_get_buffer()
         if vim.api.nvim_buf_is_valid(buf) then
             local buf_name = vim.api.nvim_buf_get_name(buf)
             if buf_name:match(BUFFER_NAME .. "$") then
+                log.debug(string.format("Found existing buffer by name: %s", tostring(buf)))
                 M.state.buf_id = buf
                 return buf
             end
@@ -105,6 +109,7 @@ local function create_or_get_buffer()
 
     -- Create new buffer if none exists
     local buf = vim.api.nvim_create_buf(false, true)
+    log.debug(string.format("Created new buffer: %s", tostring(buf)))
     
     -- Set buffer options
     vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
@@ -117,6 +122,7 @@ local function create_or_get_buffer()
     vim.api.nvim_buf_set_name(buf, BUFFER_NAME)
 
     M.state.buf_id = buf
+    log.debug(string.format("Buffer created and state updated. buf_id=%s", tostring(M.state.buf_id)))
     return buf
 end
 
@@ -130,21 +136,34 @@ function M.open_window(position)
         return
     end
 
+    -- Log initial state
+    log.debug(string.format("Opening window - Current state: is_open=%s, position=%s, win_id=%s, buf_id=%s", 
+        tostring(M.state.is_open), 
+        tostring(M.state.position), 
+        tostring(M.state.win_id), 
+        tostring(M.state.buf_id)))
+
     -- Get or create buffer first
     local bufnr = create_or_get_buffer()
+    log.debug(string.format("Buffer for window: %s", tostring(bufnr)))
 
     -- If window exists but position changed, close it
     if M.state.is_open and M.state.position ~= position then
+        log.debug(string.format("Position changed from %s to %s, closing existing window", 
+            tostring(M.state.position), tostring(position)))
         M.close_window()
     end
 
     -- Create window if needed
     if not M.state.is_open then
         local cmd = position == "bottom" and "botright new" or "vertical botright new"
+        log.debug(string.format("Creating new window with command: %s", cmd))
         vim.cmd(cmd)
         
         local win_id = vim.api.nvim_get_current_win()
         M.state.win_id = win_id
+        
+        log.debug(string.format("Window created: %s", tostring(win_id)))
         
         -- Set window options
         vim.api.nvim_win_set_buf(win_id, bufnr)
@@ -157,25 +176,48 @@ function M.open_window(position)
         -- Set window size
         if position == "bottom" then
             vim.api.nvim_win_set_height(win_id, 10)
+            log.debug("Set window height to 10")
         else
             vim.api.nvim_win_set_width(win_id, math.floor(vim.o.columns * 0.3))
+            log.debug("Set window width to 30% of columns")
         end
 
         M.state.is_open = true
         M.state.position = position
+
+        log.debug(string.format("Window opened - Final state: is_open=%s, position=%s, win_id=%s, buf_id=%s", 
+            tostring(M.state.is_open), 
+            tostring(M.state.position), 
+            tostring(M.state.win_id), 
+            tostring(M.state.buf_id)))
     end
 end
 
 ---Close the diagnostics window if it exists
 function M.close_window()
+    log.debug(string.format("Closing window - Initial state: is_open=%s, win_id=%s, buf_id=%s", 
+        tostring(M.state.is_open), 
+        tostring(M.state.win_id), 
+        tostring(M.state.buf_id)))
+
     if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
+        log.debug(string.format("Closing window: %s", tostring(M.state.win_id)))
         -- Close window but keep buffer
         vim.api.nvim_win_close(M.state.win_id, true)
+    else
+        log.debug("No valid window to close")
     end
 
     -- Reset window state but keep buffer_id
+    local old_win_id = M.state.win_id
     M.state.win_id = nil
     M.state.is_open = false
+
+    log.debug(string.format("Window closed - Final state: is_open=%s, win_id=%s, buf_id=%s, old_win_id=%s", 
+        tostring(M.state.is_open), 
+        tostring(M.state.win_id), 
+        tostring(M.state.buf_id),
+        tostring(old_win_id)))
 end
 
 ---Toggle the diagnostics window
@@ -233,7 +275,13 @@ end
 ---Check if diagnostics window is currently open
 ---@return boolean
 function M.is_open()
-	return not not (M.state.is_open and M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id))
+    local is_open = not not (M.state.is_open and M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id))
+    log.debug(string.format("Checking window open status: is_open=%s, state.is_open=%s, win_id=%s, win_valid=%s", 
+        tostring(is_open),
+        tostring(M.state.is_open), 
+        tostring(M.state.win_id),
+        tostring(M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id))))
+    return is_open
 end
 
 ---Update the content of the diagnostics buffer
