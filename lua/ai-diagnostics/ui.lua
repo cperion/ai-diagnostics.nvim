@@ -16,9 +16,11 @@ local function create_or_get_buffer()
         end
     end
     
-    -- Create new buffer
+    -- Create new buffer with name
     local bufnr = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_name(bufnr, BUFFER_NAME)
+    
+    -- Try to set buffer name, ignore errors if it already exists
+    pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME)
     
     -- Set buffer options
     vim.api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
