@@ -187,7 +187,7 @@ end
 ---Check if diagnostics window is currently open
 ---@return boolean
 function M.is_open()
-	return M.state.is_open and M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id)
+	return not not (M.state.is_open and M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id))
 end
 
 ---Update the content of the diagnostics buffer
