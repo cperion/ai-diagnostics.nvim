@@ -83,13 +83,13 @@ function M.open_window(position)
 		local row, col
 
 		if position == "right" then
-			width = math.floor(vim.o.columns * 0.3)
+			width = math.floor(vim.o.columns * 0.5)
 			height = math.floor(vim.o.lines)
 			row = math.floor((vim.o.lines - height) / 2)
 			col = vim.o.columns - width
 		elseif position == "bottom" then
 			width = math.floor(vim.o.columns)
-			height = math.floor(vim.o.lines * 0.3)
+			height = math.floor(vim.o.lines * 0.5)
 			row = vim.o.lines - height
 			col = math.floor((vim.o.columns - width) / 2)
 		else
