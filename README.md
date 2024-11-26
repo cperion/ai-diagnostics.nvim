@@ -42,6 +42,12 @@ require('ai-diagnostics').setup({
 
 ## Usage
 
+### Commands
+
+- `:AIDiagnosticsShow [bottom|right]` - Open diagnostics in a split window
+- `:AIDiagnosticsClose` - Close the diagnostics window
+- `:AIDiagnosticsToggle [bottom|right]` - Toggle the diagnostics window
+
 ### Lua API
 
 ```lua
@@ -53,6 +59,11 @@ local buf_diagnostics = require('ai-diagnostics').get_buffer_diagnostics(bufnr)
 
 -- Get workspace diagnostics (all buffers)
 local workspace_diagnostics = require('ai-diagnostics').get_workspace_diagnostics()
+
+-- UI Controls
+require('ai-diagnostics').show_diagnostics_window('bottom') -- or 'right'
+require('ai-diagnostics').close_diagnostics_window()
+require('ai-diagnostics').toggle_diagnostics_window('bottom') -- or 'right'
 ```
 
 ### Example Output
