@@ -25,7 +25,7 @@ local function ensure_buffer()
         buftype = 'nofile',
         bufhidden = require("ai-diagnostics").config.bufhidden or 'hide',
         swapfile = false,
-        buflisted = false,
+        buflisted = false,  -- Ensure the buffer is not listed
         modifiable = true,
         filetype = 'ai-diagnostics'
     }
