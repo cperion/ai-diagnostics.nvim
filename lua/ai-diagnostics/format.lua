@@ -74,8 +74,8 @@ local function merge_contexts(diagnostics, contexts)
 				}
 			end
 
-			-- Check if this is the diagnostic's line
-			if line_number == (diagnostic.lnum or 0) + 1 then
+			-- Check if this is the diagnostic's line (LSP uses 0-based line numbers)
+			if line_number == (diagnostic.lnum or 0) + 2 then
 				table.insert(line_map[line_number].diagnostics, diagnostic)
 			end
 
