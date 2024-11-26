@@ -77,36 +77,47 @@ M.state = {
 ---Create or get the diagnostics buffer
 ---@return number|nil Buffer number
 local function create_or_get_buffer()
-    -- Wrap in pcall for safety
-    local status, result = pcall(function()
-        -- First check if we have a valid buffer already
-        if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
-            return M.state.buf_id
+    -- First try to find existing buffer by name
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_valid(buf) then
+            local buf_name = vim.api.nvim_buf_get_name(buf)
+            if buf_name:match(BUFFER_NAME .. "$") then
+                M.state.buf_id = buf
+                return buf
+            end
         end
+    end
 
-        -- Create new buffer
-        local bufnr = vim.api.nvim_create_buf(false, true)
+    -- Create new buffer if none exists
+    local status, bufnr = pcall(function()
+        local buf = vim.api.nvim_create_buf(false, true)
         
-        -- Set buffer options safely
-        pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')
-        pcall(vim.api.nvim_buf_set_option, bufnr, 'bufhidden', 'wipe')  -- Changed from 'hide' to 'wipe'
-        pcall(vim.api.nvim_buf_set_option, bufnr, 'swapfile', false)
-        pcall(vim.api.nvim_buf_set_option, bufnr, 'modifiable', true)
-        pcall(vim.api.nvim_buf_set_option, bufnr, 'buflisted', false)
+        -- Set buffer options
+        vim.api.nvim_buf_set_name(buf, BUFFER_NAME)
+        vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
+        vim.api.nvim_buf_set_option(buf, 'bufhidden', 'hide')
+        vim.api.nvim_buf_set_option(buf, 'swapfile', false)
+        vim.api.nvim_buf_set_option(buf, 'buflisted', false)
+        vim.api.nvim_buf_set_option(buf, 'modifiable', true)
 
-        -- Set buffer name after options
-        pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME)
+        -- Add buffer-local autocmd to prevent renaming
+        vim.api.nvim_create_autocmd("BufWritePre", {
+            buffer = buf,
+            callback = function()
+                vim.api.nvim_buf_set_name(buf, BUFFER_NAME)
+            end
+        })
 
-        M.state.buf_id = bufnr
-        return bufnr
+        M.state.buf_id = buf
+        return buf
     end)
 
     if not status then
-        vim.notify("Error creating diagnostics buffer: " .. tostring(result), vim.log.levels.ERROR)
+        vim.notify("Error creating diagnostics buffer: " .. tostring(bufnr), vim.log.levels.ERROR)
         return nil
     end
 
-    return result
+    return bufnr
 end
 
 ---Open diagnostics window in specified position
