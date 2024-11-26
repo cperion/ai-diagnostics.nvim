@@ -6,6 +6,8 @@ M.default_config = {
 	after_lines = 2,
 	-- Maximum length for truncated lines
 	max_line_length = 120,
+	-- Enable live updates of diagnostics window
+	live_updates = true,
 }
 
 return M

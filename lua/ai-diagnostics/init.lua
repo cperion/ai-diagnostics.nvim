@@ -18,6 +18,18 @@ local M = {
 function M.setup(user_config)
 	M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
 	
+	-- Set up diagnostic change autocmd if live updates enabled
+	if M.config.live_updates then
+		vim.api.nvim_create_autocmd("DiagnosticChanged", {
+			callback = function()
+				if ui.win_id and vim.api.nvim_win_is_valid(ui.win_id) then
+					local content = M.get_workspace_diagnostics()
+					ui.update_content(content)
+				end
+			end,
+		})
+	end
+	
 	-- Create commands
 	vim.api.nvim_create_user_command('AIDiagnosticsShow', function(opts)
 		M.show_diagnostics_window(opts.args)

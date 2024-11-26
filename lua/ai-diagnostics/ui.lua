@@ -89,6 +89,12 @@ function M.update_content(content)
 
     local bufnr = create_or_get_buffer()
     
+    -- Save window view
+    local win_view = nil
+    if M.win_id and vim.api.nvim_win_is_valid(M.win_id) then
+        win_view = vim.api.nvim_win_call(M.win_id, vim.fn.winsaveview)
+    end
+    
     -- Make buffer modifiable
     vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)
     
@@ -98,6 +104,13 @@ function M.update_content(content)
     
     -- Make buffer non-modifiable again
     vim.api.nvim_buf_set_option(bufnr, 'modifiable', false)
+    
+    -- Restore window view
+    if win_view and M.win_id and vim.api.nvim_win_is_valid(M.win_id) then
+        vim.api.nvim_win_call(M.win_id, function()
+            vim.fn.winrestview(win_view)
+        end)
+    end
 end
 
 return M
