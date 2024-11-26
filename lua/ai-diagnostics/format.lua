@@ -107,7 +107,6 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 		local merged = merge_contexts(group.diagnostics, group.contexts)
 
 		for _, block in ipairs(merged) do
-			table.insert(output, "") -- Add blank line between blocks
 			for _, line in ipairs(block.lines) do
 				local line_content = utils.truncate_string(line.content)
 				if #line.diagnostics > 0 then
@@ -123,7 +122,11 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 					and string.format("%4d: %s", line.number, line_content)
 					or line_content
 
-				table.insert(output, formatted_line)
+				if #line.diagnostics > 0 then
+					table.insert(output, formatted_line)
+				else
+					table.insert(output, line_content)
+				end
 			end
 		end
 	end
