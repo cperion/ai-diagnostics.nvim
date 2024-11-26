@@ -113,9 +113,21 @@ function M.close_window()
         -- Close the window
         vim.api.nvim_win_close(win_id, true)
 
-        -- Delete the buffer if it's still valid
+        -- Check if the buffer is still valid and not in use by other windows
         if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
-            vim.api.nvim_buf_delete(M.state.buf_id, { force = true })
+            local buf_in_use = false
+            for _, win in ipairs(vim.api.nvim_list_wins()) do
+                if vim.api.nvim_win_get_buf(win) == M.state.buf_id then
+                    buf_in_use = true
+                    break
+                end
+            end
+
+            -- Delete the buffer if it's not in use by any other windows
+            if not buf_in_use then
+                vim.api.nvim_buf_delete(M.state.buf_id, { force = true })
+                M.state.buf_id = nil
+            end
         end
 
         -- Reset state
