@@ -74,18 +74,8 @@ local function merge_contexts(diagnostics, contexts)
 				}
 			end
 
-			if diagnostic.range and line_number == diagnostic.range.start.line + 1 then
-				-- Ensure all numeric fields in diagnostic are numbers
-				if diagnostic.range.start.character then
-					diagnostic.range.start.character = tonumber(diagnostic.range.start.character)
-				end
-				if diagnostic.range['end'] and diagnostic.range['end'].line then
-					diagnostic.range['end'].line = tonumber(diagnostic.range['end'].line)
-				end
-				if diagnostic.range['end'] and diagnostic.range['end'].character then
-					diagnostic.range['end'].character = tonumber(diagnostic.range['end'].character)
-				end
-
+			-- Check if this is the diagnostic's line
+			if line_number == (diagnostic.lnum or 0) + 1 then
 				table.insert(line_map[line_number].diagnostics, diagnostic)
 			end
 
