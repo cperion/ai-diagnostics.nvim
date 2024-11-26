@@ -3,6 +3,18 @@ local utils = require("ai-diagnostics.utils")
 local grouping = require("ai-diagnostics.grouping")
 local M = {}
 
+---Convert a value to number or return nil if not possible
+---@param value any The value to convert
+---@return number|nil
+local function to_number(value)
+    if type(value) == "number" then
+        return value
+    elseif type(value) == "string" then
+        return tonumber(value)
+    end
+    return nil
+end
+
 ---Group diagnostics by line and merge overlapping contexts
 ---@param diagnostics table[] Array of diagnostics
 ---@param contexts table[] Array of context information for each diagnostic
@@ -14,19 +26,31 @@ local function merge_contexts(diagnostics, contexts)
 	for i, context_lines in ipairs(contexts) do
 		local diagnostic = diagnostics[i]
 		for _, line in ipairs(context_lines) do
-			-- Ensure line.number is a number
-			local line_number = tonumber(line.number)
+			local line_number = to_number(line.number)
 			if not line_number then
 				log.warn("Invalid line number found: " .. tostring(line.number))
 				goto continue
 			end
 
-			-- Ensure diagnostic.range.start.line is a number
 			if diagnostic.range then
-				diagnostic.range.start.line = tonumber(diagnostic.range.start.line)
-				if not diagnostic.range.start.line then
-					log.warn("Invalid diagnostic line number")
+				local start_line = to_number(diagnostic.range.start.line)
+				if not start_line then
+					log.warn("Invalid diagnostic start line")
 					goto continue
+				end
+				diagnostic.range.start.line = start_line
+				
+				-- Convert other range values
+				if diagnostic.range.start.character then
+					diagnostic.range.start.character = to_number(diagnostic.range.start.character) or 0
+				end
+				if diagnostic.range['end'] then
+					if diagnostic.range['end'].line then
+						diagnostic.range['end'].line = to_number(diagnostic.range['end'].line) or start_line
+					end
+					if diagnostic.range['end'].character then
+						diagnostic.range['end'].character = to_number(diagnostic.range['end'].character) or 0
+					end
 				end
 			end
 
@@ -155,7 +179,7 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 
 				local show_line_numbers = require("ai-diagnostics").config.show_line_numbers
 				local formatted_line = show_line_numbers
-					and string.format("%4d: %s", tonumber(line.number) or 0, line_content)
+					and string.format("%4d: %s", to_number(line.number) or 0, line_content)
 					or line_content
 
 				if #line.diagnostics > 0 then
