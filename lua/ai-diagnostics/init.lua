@@ -43,67 +43,28 @@ function M.setup(user_config)
     
     M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
 	
-	-- Setup logging
-	if M.config.log.enabled then
-		-- Set default log file path if none provided
-		if not M.config.log.file then
-			M.config.log.file = vim.fn.stdpath("state") .. "/log/ai-diagnostics.log"
-		end
-		
-		-- Expand the path fully to avoid any path issues
-		M.config.log.file = vim.fn.expand(M.config.log.file)
-		
-		-- Notify user of resolved log path
-		vim.notify(string.format("AI Diagnostics log file: %s", M.config.log.file), vim.log.levels.INFO)
-		
-		-- Create full directory path
-		local log_dir = vim.fn.fnamemodify(M.config.log.file, ":h")
-		
-		-- Check if there's a file blocking directory creation
-		local stat = vim.loop.fs_stat(log_dir)
-		if stat and stat.type == "file" then
-			vim.notify(string.format("Cannot create log directory: '%s' exists and is a file", log_dir), vim.log.levels.ERROR)
-			M.config.log.enabled = false
-			return
-		end
-		
-		-- Try to create directory
-		local mkdir_ok, mkdir_err = pcall(function()
-			vim.fn.mkdir(log_dir, "p")
-		end)
-		
-		if not mkdir_ok then
-			vim.notify(string.format("Failed to create log directory '%s': %s", log_dir, tostring(mkdir_err)), vim.log.levels.WARN)
-			M.config.log.enabled = false
-			return
-		end
-		
-		-- Try to create/clear the log file
-		local file, err = io.open(M.config.log.file, "w")
-		if not file then
-			vim.notify(string.format("Failed to create log file '%s': %s", M.config.log.file, tostring(err)), vim.log.levels.WARN)
-			M.config.log.enabled = false
-		else
-			file:close()
-			
-			-- Initialize logging
-			local ok, setup_err = pcall(function()
-				log.setup({
-					level = log.levels[M.config.log.level] or log.levels.INFO,
-					file = M.config.log.file,
-					max_size = M.config.log.max_size
-				})
-			end)
-			
-			if not ok then
-				vim.notify("Failed to initialize logging: " .. tostring(setup_err), vim.log.levels.WARN)
-				M.config.log.enabled = false
-			else
-				log.info("AI Diagnostics plugin initialized")
-				log.debug(string.format("Log file location: %s", M.config.log.file))
-			end
-		end
-	end
+    -- Setup logging
+    if M.config.log.enabled then
+        -- Set default log file path if none provided
+        if not M.config.log.file then
+            M.config.log.file = vim.fn.stdpath("state") .. "/log/ai-diagnostics.log"
+        end
+        
+        local ok, err = pcall(function()
+            log.setup({
+                level = log.levels[M.config.log.level] or log.levels.INFO,
+                file = M.config.log.file,
+                max_size = M.config.log.max_size
+            })
+        end)
+        
+        if not ok then
+            vim.notify("Failed to initialize logging: " .. tostring(err), vim.log.levels.WARN)
+            M.config.log.enabled = false
+        else
+            log.info("AI Diagnostics plugin initialized")
+        end
+    end
 
 	-- Set up diagnostic change autocmd if live updates enabled
 	if M.config.live_updates then

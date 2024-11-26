@@ -82,31 +82,36 @@ function M.setup(opts)
             -- Expand the path fully
             config.file = vim.fn.expand(config.file)
             
-            -- Create full directory path
+            -- Get the directory path
             local log_dir = vim.fn.fnamemodify(config.file, ":h")
             
-            -- Check if there's a file blocking directory creation
-            local stat = vim.loop.fs_stat(log_dir)
-            if stat and stat.type == "file" then
-                error(string.format("Cannot create log directory: '%s' exists and is a file", log_dir))
+            -- First check if the directory exists and is actually a directory
+            local dir_stat = vim.loop.fs_stat(log_dir)
+            if dir_stat then
+                if dir_stat.type ~= "directory" then
+                    -- If it exists but is not a directory, try to remove it
+                    local success, err = vim.loop.fs_unlink(log_dir)
+                    if not success then
+                        error(string.format("Cannot create log directory: '%s' exists and is not a directory", log_dir))
+                        return
+                    end
+                end
             end
             
-            -- Try to create directory
-            local ok, err = pcall(function()
+            -- Now try to create the directory
+            local mkdir_ok, mkdir_err = pcall(function()
                 vim.fn.mkdir(log_dir, "p")
             end)
             
-            if not ok then
-                vim.notify(string.format("Failed to create log directory '%s': %s", log_dir, tostring(err)), vim.log.levels.ERROR)
-                config.file = nil
+            if not mkdir_ok then
+                error(string.format("Failed to create log directory '%s': %s", log_dir, tostring(mkdir_err)))
                 return
             end
             
-            -- Try to create/clear the log file
-            local file = io.open(config.file, "w")
+            -- Try to create/open the log file
+            local file = io.open(config.file, "a+")
             if not file then
-                vim.notify(string.format("Failed to create log file '%s'", config.file), vim.log.levels.ERROR)
-                config.file = nil
+                error(string.format("Failed to create/open log file '%s'", config.file))
                 return
             end
             file:close()
