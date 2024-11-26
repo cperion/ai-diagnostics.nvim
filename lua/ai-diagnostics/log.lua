@@ -63,10 +63,19 @@ function M.setup(opts)
         config.file = opts.file or config.file
         config.max_size = opts.max_size or config.max_size
         
-        -- Create logs directory if it doesn't exist
-        local log_dir = vim.fn.fnamemodify(config.file, ":h")
-        if vim.fn.isdirectory(log_dir) == 0 then
-            vim.fn.mkdir(log_dir, "p")
+        if config.file then
+            -- Create full directory path
+            local log_dir = vim.fn.fnamemodify(config.file, ":h")
+            -- Use recursive directory creation with full path
+            local ok, err = pcall(function()
+                vim.fn.mkdir(log_dir, "p")
+            end)
+            
+            if not ok then
+                vim.notify("Failed to create log directory: " .. tostring(err), vim.log.levels.ERROR)
+                -- Disable logging if we can't create the directory
+                config.file = nil
+            end
         end
     end
 end
