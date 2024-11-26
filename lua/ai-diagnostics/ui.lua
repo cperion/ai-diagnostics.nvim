@@ -73,16 +73,16 @@ function M.open_window(position)
     M.state.is_open = true
     
     -- Set window options
-    vim.api.nvim_win_set_buf(M.win_id, bufnr)
-    vim.api.nvim_win_set_option(M.win_id, 'number', false)
-    vim.api.nvim_win_set_option(M.win_id, 'relativenumber', false)
-    vim.api.nvim_win_set_option(M.win_id, 'wrap', false)
+    vim.api.nvim_win_set_buf(M.state.win_id, bufnr)
+    vim.api.nvim_win_set_option(M.state.win_id, 'number', false)
+    vim.api.nvim_win_set_option(M.state.win_id, 'relativenumber', false)
+    vim.api.nvim_win_set_option(M.state.win_id, 'wrap', false)
     
     -- Set window height/width
     if position == 'bottom' then
-        vim.api.nvim_win_set_height(M.win_id, 10)
+        vim.api.nvim_win_set_height(M.state.win_id, 10)
     else
-        vim.api.nvim_win_set_width(M.win_id, 80)
+        vim.api.nvim_win_set_width(M.state.win_id, 80)
     end
 end
 
@@ -123,8 +123,8 @@ function M.update_content(content)
     
     -- Save window view
     local win_view = nil
-    if M.win_id and vim.api.nvim_win_is_valid(M.win_id) then
-        win_view = vim.api.nvim_win_call(M.win_id, vim.fn.winsaveview)
+    if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
+        win_view = vim.api.nvim_win_call(M.state.win_id, vim.fn.winsaveview)
     end
     
     -- Make buffer modifiable
@@ -138,8 +138,8 @@ function M.update_content(content)
     vim.api.nvim_buf_set_option(bufnr, 'modifiable', false)
     
     -- Restore window view
-    if win_view and M.win_id and vim.api.nvim_win_is_valid(M.win_id) then
-        vim.api.nvim_win_call(M.win_id, function()
+    if win_view and M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
+        vim.api.nvim_win_call(M.state.win_id, function()
             vim.fn.winrestview(win_view)
         end)
     end
