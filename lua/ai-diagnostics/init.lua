@@ -45,7 +45,6 @@ function M.setup(user_config)
                 error(err)
             end
         end
-
         M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
     end)
 
@@ -63,7 +62,6 @@ function M.setup(user_config)
             if not M.config.log.file then
                 M.config.log.file = vim.fn.stdpath("cache") .. "/ai-diagnostics.log"
             end
-            
             log.setup({
                 level = M.config.log.level == "DEBUG" and log.levels.DEBUG or log.levels.INFO,
                 file = M.config.log.file,
@@ -75,7 +73,6 @@ function M.setup(user_config)
     -- Set up diagnostic change autocmd if live updates enabled
     if M.config.live_updates then
         local group = vim.api.nvim_create_augroup('AIDiagnosticsUpdates', { clear = true })
-        
         pcall(vim.api.nvim_create_autocmd, "DiagnosticChanged", {
             group = group,
             callback = function()
