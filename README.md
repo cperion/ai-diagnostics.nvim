@@ -17,7 +17,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
 {
-    'your-username/nvim-ai-diagnostics',
+    'cperion/ai-diagnostics',
     config = function()
         require('ai-diagnostics').setup({
             -- optional configuration
