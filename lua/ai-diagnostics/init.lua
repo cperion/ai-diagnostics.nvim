@@ -63,10 +63,18 @@ function M.setup(user_config)
 	-- Set up diagnostic change autocmd if live updates enabled
 	if M.config.live_updates then
 		vim.api.nvim_create_autocmd("DiagnosticChanged", {
-			callback = function()
-				if ui.state.win_id and vim.api.nvim_win_is_valid(ui.state.win_id) then
-					local content = M.get_workspace_diagnostics()
-					ui.update_content(content)
+			callback = function(args)
+				if ui.is_open() then
+					M.show_diagnostics_window()
+				end
+			end,
+		})
+
+		-- Handle buffer lifecycle events
+		vim.api.nvim_create_autocmd({"BufDelete", "BufUnload"}, {
+			callback = function(args)
+				if ui.is_open() then
+					M.show_diagnostics_window()
 				end
 			end,
 		})
@@ -103,13 +111,26 @@ function M.get_buffer_diagnostics(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
     log.debug(string.format("Getting diagnostics for buffer %d", bufnr))
     
-    if not vim.api.nvim_buf_is_valid(bufnr) then
-        local msg = string.format("Invalid buffer %s. Buffer may have been closed or deleted.", tostring(bufnr))
-        log.error(msg)
-        vim.notify(msg, vim.log.levels.ERROR)
+    -- Check if buffer is valid and loaded
+    if not (vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_is_loaded(bufnr)) then
+        log.debug("Buffer is not valid or not loaded: " .. tostring(bufnr))
         return ""
     end
-    
+
+    -- Check if buffer has a valid file path
+    local bufname = vim.api.nvim_buf_get_name(bufnr)
+    if bufname == "" then
+        log.debug("Buffer has no file path")
+        return ""
+    end
+
+    -- Check for LSP clients
+    local clients = vim.lsp.get_active_clients({bufnr = bufnr})
+    if #clients == 0 then
+        log.debug("No LSP clients attached to buffer " .. tostring(bufnr))
+        return ""
+    end
+
     local diagnostics = vim.diagnostic.get(bufnr)
     log.debug(string.format("Got %d diagnostics for buffer %d", #diagnostics, bufnr))
 	
@@ -120,7 +141,7 @@ function M.get_buffer_diagnostics(bufnr)
 
 	local contexts = {}
 	local filenames = {}
-	local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":.")
+	local filename = vim.fn.fnamemodify(bufname, ":.")
 
 	for _, diagnostic in ipairs(diagnostics) do
 		local diag_context = context.get_diagnostic_context(bufnr, diagnostic, M.config)
@@ -138,15 +159,29 @@ function M.get_workspace_diagnostics()
     local has_content = false
     log.debug("Getting workspace diagnostics")
 
+    -- Get list of valid buffers with files
+    local valid_buffers = {}
     for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-        if vim.api.nvim_buf_is_loaded(bufnr) then
-            log.debug(string.format("Processing buffer %d", bufnr))
-            local buf_diagnostics = M.get_buffer_diagnostics(bufnr)
-            if buf_diagnostics ~= "" then
-                table.insert(all_diagnostics, buf_diagnostics)
-                has_content = true
-                log.debug("Added diagnostics for buffer")
-            end
+        if vim.api.nvim_buf_is_valid(bufnr) 
+           and vim.api.nvim_buf_is_loaded(bufnr)
+           and vim.api.nvim_buf_get_name(bufnr) ~= "" then
+            table.insert(valid_buffers, bufnr)
+        end
+    end
+
+    -- Check if we have any valid buffers
+    if #valid_buffers == 0 then
+        log.debug("No valid buffers found")
+        return "No valid buffers found"
+    end
+
+    -- Process each valid buffer
+    for _, bufnr in ipairs(valid_buffers) do
+        log.debug(string.format("Processing buffer %d", bufnr))
+        local buf_diagnostics = M.get_buffer_diagnostics(bufnr)
+        if buf_diagnostics ~= "" then
+            table.insert(all_diagnostics, buf_diagnostics)
+            has_content = true
         end
     end
 
