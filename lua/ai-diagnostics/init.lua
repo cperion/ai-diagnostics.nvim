@@ -45,6 +45,10 @@ function M.setup(user_config)
 	
 	-- Setup logging
 	if M.config.log.enabled then
+		-- Ensure log directory exists
+		local log_dir = vim.fn.fnamemodify(M.config.log.file, ":h")
+		vim.fn.mkdir(log_dir, "p")
+		
 		local ok, err = pcall(function()
 			log.setup({
 				level = log.levels[M.config.log.level] or log.levels.INFO,
