@@ -17,7 +17,7 @@ local function create_or_get_buffer()
     -- Check for existing buffer
     local bufnr
     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        if vim.api.nvim_buf_get_name(buf):match(BUFFER_NAME) then
+        if vim.api.nvim_buf_get_name(buf):match(BUFFER_NAME .. "$") then
             bufnr = buf
             break
         end
@@ -26,21 +26,31 @@ local function create_or_get_buffer()
     if not bufnr then
         -- Create new buffer
         bufnr = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_buf_set_name(bufnr, BUFFER_NAME)
+        -- Use pcall to safely set buffer name
+        local ok, err = pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME)
+        if not ok then
+            -- If naming fails, generate unique name
+            local i = 1
+            while not ok do
+                ok, err = pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME .. i)
+                i = i + 1
+            end
+        end
     end
     
     -- Set buffer options
     vim.api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(bufnr, 'bufhidden', 'hide')
+    vim.api.nvim_buf_set_option(bufnr, 'bufhidden', 'wipe')  -- Changed from 'hide' to 'wipe'
     vim.api.nvim_buf_set_option(bufnr, 'swapfile', false)
-    vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)  -- Start as modifiable
+    vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)
     
     -- Add keymapping to quit window
-    vim.api.nvim_buf_set_keymap(bufnr, 'n', 'q', ':lua require("ai-diagnostics.ui").close_window()<CR>', {
-        noremap = true,
-        silent = true,
-        nowait = true
-    })
+    local ok, _ = pcall(vim.api.nvim_buf_set_keymap, bufnr, 'n', 'q', 
+        ':lua require("ai-diagnostics.ui").close_window()<CR>', {
+            noremap = true,
+            silent = true,
+            nowait = true
+        })
     
     return bufnr
 end
@@ -56,14 +66,13 @@ function M.open_window(position)
         return
     end
     
+    -- Close existing window if it exists
+    if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
+        M.close_window()
+    end
+    
     -- Store position preference
     M.state.position = position
-    
-    -- If window exists, focus it
-    if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
-        vim.api.nvim_set_current_win(M.state.win_id)
-        return
-    end
     
     local bufnr = create_or_get_buffer()
     
@@ -92,7 +101,14 @@ end
 ---Close the diagnostics window if it exists
 function M.close_window()
     if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
+        -- Get the buffer number before closing the window
+        local bufnr = vim.api.nvim_win_get_buf(M.state.win_id)
+        
+        -- Close the window
         vim.api.nvim_win_close(M.state.win_id, true)
+        
+        -- Try to delete the buffer
+        pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
     end
     M.state.win_id = nil
     M.state.is_open = false
