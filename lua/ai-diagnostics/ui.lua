@@ -6,7 +6,8 @@ local BUFFER_NAME = "AI-Diagnostics"
 -- Store the window ID to manage it
 M.win_id = nil
 
--- Create or get the diagnostics buffer
+---Create or get the diagnostics buffer
+---@return number Buffer number
 local function create_or_get_buffer()
     -- Check for existing buffer
     for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
@@ -28,9 +29,16 @@ local function create_or_get_buffer()
     return bufnr
 end
 
--- Open diagnostics window
+---Open diagnostics window in specified position
+---@param position string|nil "bottom" or "right" (defaults to "bottom")
 function M.open_window(position)
-    position = position or 'bottom' -- 'bottom' or 'right'
+    position = position or 'bottom'
+    
+    -- Validate position
+    if position ~= 'bottom' and position ~= 'right' then
+        vim.notify("Invalid position. Use 'bottom' or 'right'", vim.log.levels.ERROR)
+        return
+    end
     
     -- If window exists, focus it
     if M.win_id and vim.api.nvim_win_is_valid(M.win_id) then
@@ -61,7 +69,7 @@ function M.open_window(position)
     end
 end
 
--- Close diagnostics window
+---Close the diagnostics window if it exists
 function M.close_window()
     if M.win_id and vim.api.nvim_win_is_valid(M.win_id) then
         vim.api.nvim_win_close(M.win_id, true)
@@ -69,8 +77,14 @@ function M.close_window()
     M.win_id = nil
 end
 
--- Update diagnostics content
+---Update the content of the diagnostics buffer
+---@param content string The formatted diagnostic content to display
 function M.update_content(content)
+    if type(content) ~= "string" then
+        vim.notify("Content must be a string", vim.log.levels.ERROR)
+        return
+    end
+
     local bufnr = create_or_get_buffer()
     
     -- Make buffer modifiable
