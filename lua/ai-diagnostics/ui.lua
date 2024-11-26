@@ -28,6 +28,13 @@ local function create_or_get_buffer()
     vim.api.nvim_buf_set_option(bufnr, 'swapfile', false)
     vim.api.nvim_buf_set_option(bufnr, 'modifiable', false)
     
+    -- Add keymapping to quit window
+    vim.api.nvim_buf_set_keymap(bufnr, 'n', 'q', ':lua require("ai-diagnostics.ui").close_window()<CR>', {
+        noremap = true,
+        silent = true,
+        nowait = true
+    })
+    
     return bufnr
 end
 
