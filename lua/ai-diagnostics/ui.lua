@@ -1,31 +1,37 @@
 local log = require("ai-diagnostics.log")
 local M = {}
 
--- Helper function for cleanup during shutdown
-local function cleanup()
-    -- Safely delete our buffer if it exists
-    if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
-        pcall(vim.api.nvim_buf_delete, M.state.buf_id, { force = true })
-    end
-    
-    -- Clear state
-    M.state = {
-        win_id = nil,
-        buf_id = nil,
-        position = nil,
-        is_open = false,
-    }
-end
+-- Buffer name for the diagnostics window
+local BUFFER_NAME = "AI-Diagnostics"
+
+-- Initialize state without depending on config
+M.state = {
+    win_id = nil,
+    buf_id = nil,
+    position = nil,
+    is_open = false
+}
 
 -- Setup function to register cleanup autocmd
 function M.setup()
     -- Create augroup for cleanup
     local augroup = vim.api.nvim_create_augroup('AIDiagnosticsCleanup', { clear = true })
     
-    -- Register VimLeavePre autocmd
-    vim.api.nvim_create_autocmd('VimLeavePre', {
+    -- Register VimLeavePre autocmd with pcall for safety
+    pcall(vim.api.nvim_create_autocmd, 'VimLeavePre', {
         group = augroup,
-        callback = cleanup,
+        callback = function()
+            -- Safely cleanup without depending on state
+            if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
+                pcall(vim.api.nvim_buf_delete, M.state.buf_id, { force = true })
+            end
+            M.state = {
+                win_id = nil,
+                buf_id = nil,
+                position = nil,
+                is_open = false
+            }
+        end,
         desc = 'Cleanup AI Diagnostics buffers and windows'
     })
 end
@@ -37,16 +43,6 @@ local function defer_fn(fn)
 	end)
 end
 
--- Buffer name for the diagnostics window
-local BUFFER_NAME = "AI-Diagnostics"
-
--- Store window state
-M.state = {
-    win_id = nil,
-    buf_id = nil,
-    position = nil,
-    is_open = false
-}
 
 -- Helper function to check if buffer is in use
 local function is_buffer_in_use(bufnr)
@@ -79,42 +75,49 @@ M.state = {
 }
 
 ---Create or get the diagnostics buffer
----@return number Buffer number
+---@return number|nil Buffer number
 local function create_or_get_buffer()
-    -- First check if we have a valid buffer already
-    if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
-        -- Check if buffer name matches what we expect
-        local buf_name = vim.api.nvim_buf_get_name(M.state.buf_id)
-        if buf_name:match(BUFFER_NAME .. "$") then
-            log.debug("Reusing existing buffer: " .. M.state.buf_id)
-            return M.state.buf_id
+    -- Wrap in pcall for safety
+    local status, result = pcall(function()
+        -- First check if we have a valid buffer already
+        if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
+            local buf_name = vim.api.nvim_buf_get_name(M.state.buf_id)
+            if buf_name:match(BUFFER_NAME .. "$") then
+                return M.state.buf_id
+            end
         end
+
+        -- Look for existing buffer with our name
+        for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+            if vim.api.nvim_buf_is_valid(bufnr) then
+                local buf_name = vim.api.nvim_buf_get_name(bufnr)
+                if buf_name:match(BUFFER_NAME .. "$") then
+                    M.state.buf_id = bufnr
+                    return bufnr
+                end
+            end
+        end
+
+        -- Create new buffer if none exists
+        local bufnr = vim.api.nvim_create_buf(false, true)
+        
+        -- Set buffer options safely
+        pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME)
+        pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')
+        pcall(vim.api.nvim_buf_set_option, bufnr, 'bufhidden', 'hide')
+        pcall(vim.api.nvim_buf_set_option, bufnr, 'swapfile', false)
+        pcall(vim.api.nvim_buf_set_option, bufnr, 'modifiable', true)
+
+        M.state.buf_id = bufnr
+        return bufnr
+    end)
+
+    if not status then
+        vim.notify("Error creating diagnostics buffer: " .. tostring(result), vim.log.levels.ERROR)
+        return nil
     end
 
-    -- Look for existing buffer with our name
-    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-        local buf_name = vim.api.nvim_buf_get_name(bufnr)
-        if buf_name:match(BUFFER_NAME .. "$") and vim.api.nvim_buf_is_valid(bufnr) then
-            M.state.buf_id = bufnr
-            log.debug("Found existing buffer: " .. bufnr)
-            return bufnr
-        end
-    end
-
-    -- Create new buffer only if none exists
-    local bufnr = vim.api.nvim_create_buf(false, true)
-    log.debug("Created new buffer: " .. bufnr)
-
-    -- Set buffer options
-    vim.api.nvim_buf_set_name(bufnr, BUFFER_NAME)
-    vim.api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(bufnr, 'bufhidden', 'hide')
-    vim.api.nvim_buf_set_option(bufnr, 'swapfile', false)
-    vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)
-
-    -- Store in state
-    M.state.buf_id = bufnr
-    return bufnr
+    return result
 end
 
 ---Open diagnostics window in specified position
