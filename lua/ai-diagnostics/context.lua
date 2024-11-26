@@ -29,9 +29,9 @@ function M.get_diagnostic_context(bufnr, diagnostic, config)
 		return {}
 	end
 
-	-- Get line numbers from diagnostic
-	local start_line = diagnostic.lnum or 0  -- Use lnum instead of range
-	local end_line = diagnostic.end_lnum or start_line  -- Use end_lnum
+	-- Get line numbers from diagnostic (convert from 0-based to 1-based)
+	local start_line = (diagnostic.lnum or 0) + 1  -- Add +1 for 0-based conversion
+	local end_line = (diagnostic.end_lnum or diagnostic.lnum or 0) + 1  -- end_lnum is also 0-based
 
 	-- Log diagnostic structure
 	log.debug(string.format("Processing diagnostic - start_line: %d, end_line: %d", start_line, end_line))
