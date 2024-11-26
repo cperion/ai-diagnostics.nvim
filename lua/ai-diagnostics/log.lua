@@ -29,17 +29,10 @@ end
 local function write_to_file(msg)
     if not config.file then return end
     
-    local file = io.open(config.file, "a")
+    -- Open file in append mode
+    local mode = vim.v.vim_did_enter and "a" or "w"  -- Overwrite on first open, append after
+    local file = io.open(config.file, mode)
     if not file then return end
-    
-    -- Check file size
-    local size = file:seek("end")
-    if size > config.max_size then
-        file:close()
-        -- Rotate log file
-        os.rename(config.file, config.file .. ".old")
-        file = io.open(config.file, "w")
-    end
     
     file:write(msg)
     file:close()

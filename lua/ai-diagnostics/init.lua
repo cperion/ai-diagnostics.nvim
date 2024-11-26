@@ -45,30 +45,45 @@ function M.setup(user_config)
 	
 	-- Setup logging
 	if M.config.log.enabled then
+		-- Expand the path fully to avoid any path issues
+		M.config.log.file = vim.fn.expand(M.config.log.file)
+		
 		-- Create full directory path
 		local log_dir = vim.fn.fnamemodify(M.config.log.file, ":h")
+		
+		-- Ensure directory exists
 		local mkdir_ok, mkdir_err = pcall(function()
-			-- Use recursive directory creation
 			vim.fn.mkdir(log_dir, "p")
 		end)
 		
 		if not mkdir_ok then
-			vim.notify("Failed to create log directory: " .. tostring(mkdir_err), vim.log.levels.WARN)
-			-- Disable logging if we can't create the directory
+			vim.notify(string.format("Failed to create log directory '%s': %s", log_dir, tostring(mkdir_err)), vim.log.levels.WARN)
 			M.config.log.enabled = false
 		else
-			local ok, err = pcall(function()
-				log.setup({
-					level = log.levels[M.config.log.level] or log.levels.INFO,
-					file = M.config.log.file,
-					max_size = M.config.log.max_size
-				})
-			end)
-			
-			if not ok then
-				vim.notify("Failed to initialize logging: " .. tostring(err), vim.log.levels.WARN)
+			-- Try to create/clear the log file
+			local file, err = io.open(M.config.log.file, "w")
+			if not file then
+				vim.notify(string.format("Failed to create log file '%s': %s", M.config.log.file, tostring(err)), vim.log.levels.WARN)
+				M.config.log.enabled = false
 			else
-				log.info("AI Diagnostics plugin initialized")
+				file:close()
+				
+				-- Initialize logging
+				local ok, setup_err = pcall(function()
+					log.setup({
+						level = log.levels[M.config.log.level] or log.levels.INFO,
+						file = M.config.log.file,
+						max_size = M.config.log.max_size
+					})
+				end)
+				
+				if not ok then
+					vim.notify("Failed to initialize logging: " .. tostring(setup_err), vim.log.levels.WARN)
+					M.config.log.enabled = false
+				else
+					log.info("AI Diagnostics plugin initialized")
+					log.debug(string.format("Log file location: %s", M.config.log.file))
+				end
 			end
 		end
 	end
