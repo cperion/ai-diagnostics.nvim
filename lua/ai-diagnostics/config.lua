@@ -13,6 +13,8 @@ M.default_config = {
 	line_number_format = "%4d: %s",
 	-- Sanitization options
 	sanitize_filenames = true,
+	-- Line number display option
+	show_line_numbers = false,
 	-- Logging options
 	log = {
 		enabled = true,

@@ -117,7 +117,13 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 					end
 					line_content = line_content .. " " .. table.concat(diag_messages, " ")
 				end
-				table.insert(output, string.format("%4d: %s", line.number, line_content))
+				
+				local show_line_numbers = require("ai-diagnostics").config.show_line_numbers
+				local formatted_line = show_line_numbers 
+					and string.format("%4d: %s", line.number, line_content)
+					or line_content
+				
+				table.insert(output, formatted_line)
 			end
 		end
 	end

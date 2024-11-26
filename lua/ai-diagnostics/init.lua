@@ -28,6 +28,9 @@ local function validate_config(cfg)
 	if cfg.max_line_length and type(cfg.max_line_length) ~= "number" then
 		return false, "max_line_length must be a number"
 	end
+	if cfg.show_line_numbers ~= nil and type(cfg.show_line_numbers) ~= "boolean" then
+		return false, "show_line_numbers must be a boolean"
+	end
 	return true
 end
 
