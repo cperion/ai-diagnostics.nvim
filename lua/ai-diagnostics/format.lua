@@ -107,7 +107,6 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 		local merged = merge_contexts(group.diagnostics, group.contexts)
 
 		for _, block in ipairs(merged) do
-			table.insert(output, "") -- Add blank line between blocks
 			for _, line in ipairs(block.lines) do
 				local line_content = utils.truncate_string(line.content)
 				if #line.diagnostics > 0 then
@@ -120,7 +119,7 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 				
 				local show_line_numbers = require("ai-diagnostics").config.show_line_numbers
 				local formatted_line = show_line_numbers 
-					and string.format("%4d: %s", line.number, line_content)
+					and string.format("%d: %s", line.number, line_content)
 					or line_content
 				
 				table.insert(output, formatted_line)
