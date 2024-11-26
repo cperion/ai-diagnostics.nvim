@@ -6,30 +6,34 @@ local M = {}
 ---@param config table Configuration options
 ---@return table[] Array of line information
 function M.get_diagnostic_context(bufnr, diagnostic, config)
-	if not vim.api.nvim_buf_is_valid(bufnr) then
-		vim.notify("Invalid buffer", vim.log.levels.ERROR)
-		return {}
-	end
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+        log.error("Invalid buffer")
+        return {}
+    end
 
-	-- Add validation for diagnostic structure
-	if not diagnostic then
-		vim.notify("Invalid diagnostic", vim.log.levels.ERROR)
-		return {}
-	end
+    -- Add validation for diagnostic structure
+    if not diagnostic then
+        log.error("Invalid diagnostic")
+        return {}
+    end
 
-	-- Ensure diagnostic has range information
-	local range = diagnostic.range or {}
-	local start_pos = range.start or {}
-	local end_pos = range["end"] or {}
+    -- Safely get range information with defaults
+    local range = diagnostic.range or {}
+    local start_pos = range.start or {}
+    local end_pos = range["end"] or start_pos -- Default to start position if end not present
+    
+    -- Get line numbers with defaults
+    local start_line = (start_pos.line or 0)
+    local end_line = (end_pos.line or start_line)
 
-	-- Get line numbers with defaults
-	local start_line = start_pos.line or 0
-	local end_line = end_pos.line or start_line
+    -- Log diagnostic structure
+    log.debug(string.format("Processing diagnostic - start_line: %d, end_line: %d", 
+        start_line, end_line))
 
-	-- Calculate context range with bounds checking
-	local line_count = vim.api.nvim_buf_line_count(bufnr)
-	local context_start = math.max(0, start_line - config.before_lines)
-	local context_end = math.min(line_count - 1, end_line + config.after_lines)
+    -- Calculate context range with bounds checking
+    local line_count = vim.api.nvim_buf_line_count(bufnr)
+    local context_start = math.max(0, start_line - (config.before_lines or 2))
+    local context_end = math.min(line_count - 1, end_line + (config.after_lines or 2))
 
 	-- Get buffer lines
 	local buf_lines = vim.api.nvim_buf_get_lines(bufnr, context_start, context_end + 1, false)
