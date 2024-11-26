@@ -77,7 +77,12 @@ M.state = {
 ---Create or get the diagnostics buffer
 ---@return number|nil Buffer number
 local function create_or_get_buffer()
-    -- First try to find existing buffer by name
+    -- First, check if existing buffer is valid
+    if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
+        return M.state.buf_id
+    end
+
+    -- Find existing buffer by name
     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
         if vim.api.nvim_buf_is_valid(buf) then
             local buf_name = vim.api.nvim_buf_get_name(buf)
@@ -89,44 +94,20 @@ local function create_or_get_buffer()
     end
 
     -- Create new buffer if none exists
-    local status, bufnr = pcall(function()
-        local buf = vim.api.nvim_create_buf(false, true)
-        
-        -- Set buffer options first
-        vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
-        vim.api.nvim_buf_set_option(buf, 'bufhidden', 'hide')
-        vim.api.nvim_buf_set_option(buf, 'swapfile', false)
-        vim.api.nvim_buf_set_option(buf, 'buflisted', false)
-        vim.api.nvim_buf_set_option(buf, 'modifiable', true)
+    local buf = vim.api.nvim_create_buf(false, true)
+    
+    -- Set buffer options
+    vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
+    vim.api.nvim_buf_set_option(buf, 'bufhidden', 'hide')
+    vim.api.nvim_buf_set_option(buf, 'swapfile', false)
+    vim.api.nvim_buf_set_option(buf, 'buflisted', false)
+    vim.api.nvim_buf_set_option(buf, 'modifiable', true)
 
-        -- Try to set buffer name, if it fails, generate a unique name
-        local name_set, _ = pcall(vim.api.nvim_buf_set_name, buf, BUFFER_NAME)
-        if not name_set then
-            local i = 1
-            while not name_set do
-                name_set, _ = pcall(vim.api.nvim_buf_set_name, buf, BUFFER_NAME .. i)
-                i = i + 1
-            end
-        end
+    -- Set buffer name
+    vim.api.nvim_buf_set_name(buf, BUFFER_NAME)
 
-        -- Add buffer-local autocmd to prevent renaming
-        vim.api.nvim_create_autocmd("BufWritePre", {
-            buffer = buf,
-            callback = function()
-                pcall(vim.api.nvim_buf_set_name, buf, vim.api.nvim_buf_get_name(buf))
-            end
-        })
-
-        M.state.buf_id = buf
-        return buf
-    end)
-
-    if not status then
-        vim.notify("Error creating diagnostics buffer: " .. tostring(bufnr), vim.log.levels.ERROR)
-        return nil
-    end
-
-    return bufnr
+    M.state.buf_id = buf
+    return buf
 end
 
 ---Open diagnostics window in specified position
@@ -190,11 +171,53 @@ end
 ---Toggle the diagnostics window
 ---@param position string|nil "bottom" or "right" (defaults to last used position or "bottom")
 function M.toggle_window(position)
-	if M.state.is_open then
-		M.close_window()
-	else
-		M.open_window(position or M.state.position)
-	end
+    -- If window is open, close it
+    if M.state.is_open then
+        M.close_window()
+        return
+    end
+
+    -- Determine position
+    position = position or M.state.position or "bottom"
+    
+    -- Get or create buffer (this ensures we reuse an existing buffer)
+    local bufnr = create_or_get_buffer()
+    
+    if not bufnr then
+        log.error("Failed to create or get buffer")
+        return
+    end
+
+    -- Create window
+    local cmd = position == "bottom" and "botright new" or "vertical botright new"
+    vim.cmd(cmd)
+    
+    local win_id = vim.api.nvim_get_current_win()
+    
+    -- Set the buffer for this window
+    vim.api.nvim_win_set_buf(win_id, bufnr)
+    
+    -- Set window options
+    vim.wo[win_id].number = false
+    vim.wo[win_id].relativenumber = false
+    vim.wo[win_id].wrap = false
+    vim.wo[win_id].winfixwidth = true
+    vim.wo[win_id].winfixheight = true
+
+    -- Set window size
+    if position == "bottom" then
+        vim.api.nvim_win_set_height(win_id, 10)
+    else
+        vim.api.nvim_win_set_width(win_id, math.floor(vim.o.columns * 0.3))
+    end
+
+    -- Update state
+    M.state.win_id = win_id
+    M.state.is_open = true
+    M.state.position = position
+    
+    -- Ensure buffer is populated
+    M.update_content(require("ai-diagnostics").get_workspace_diagnostics())
 end
 
 ---Check if diagnostics window is currently open
