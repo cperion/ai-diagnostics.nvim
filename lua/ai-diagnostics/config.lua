@@ -13,6 +13,13 @@ M.default_config = {
     line_number_format = "%4d: %s",
     -- Sanitization options
     sanitize_filenames = true,
+    -- Logging options
+    log = {
+        enabled = true,
+        level = "INFO",
+        file = vim.fn.stdpath("cache") .. "/ai-diagnostics.log",
+        max_size = 1024 * 1024, -- 1MB
+    },
 }
 
 return M

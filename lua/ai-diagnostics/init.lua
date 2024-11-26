@@ -8,6 +8,7 @@ local config = require("ai-diagnostics.config")
 local context = require("ai-diagnostics.context")
 local format = require("ai-diagnostics.format")
 local ui = require("ai-diagnostics.ui")
+local log = require("ai-diagnostics.log")
 
 local M = {
 	config = {},
@@ -17,6 +18,16 @@ local M = {
 ---@param user_config table|nil Optional configuration table with before_lines and after_lines
 function M.setup(user_config)
 	M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
+	
+	-- Setup logging
+	if M.config.log.enabled then
+		log.setup({
+			level = log.levels[M.config.log.level],
+			file = M.config.log.file,
+			max_size = M.config.log.max_size
+		})
+		log.info("AI Diagnostics plugin initialized")
+	end
 
 	-- Set up diagnostic change autocmd if live updates enabled
 	if M.config.live_updates then
@@ -60,11 +71,16 @@ end
 function M.get_buffer_diagnostics(bufnr)
 	bufnr = bufnr or vim.api.nvim_get_current_buf()
 	if not vim.api.nvim_buf_is_valid(bufnr) then
+		log.error("Invalid buffer: " .. tostring(bufnr))
 		vim.notify("Invalid buffer", vim.log.levels.ERROR)
 		return ""
 	end
+	
 	local diagnostics = vim.diagnostic.get(bufnr)
+	log.debug(string.format("Got %d diagnostics for buffer %d", #diagnostics, bufnr))
+	
 	if not diagnostics or #diagnostics == 0 then
+		log.debug("No diagnostics found for buffer " .. tostring(bufnr))
 		return ""
 	end
 
