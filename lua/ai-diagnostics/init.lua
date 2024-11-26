@@ -119,6 +119,7 @@ function M.get_buffer_diagnostics(bufnr)
 
     -- Check if buffer has a valid file path
     local bufname = vim.api.nvim_buf_get_name(bufnr)
+    log.debug(string.format("Buffer name: '%s'", bufname))
     if bufname == "" then
         log.debug("Buffer has no file path")
         return ""
@@ -126,6 +127,7 @@ function M.get_buffer_diagnostics(bufnr)
 
     -- Check for LSP clients
     local clients = vim.lsp.get_active_clients({bufnr = bufnr})
+    log.debug(string.format("Found %d LSP clients for buffer", #clients))
     if #clients == 0 then
         log.debug("No LSP clients attached to buffer " .. tostring(bufnr))
         return ""
@@ -162,12 +164,22 @@ function M.get_workspace_diagnostics()
     -- Get list of valid buffers with files
     local valid_buffers = {}
     for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+        log.debug(string.format("Checking buffer %d: valid=%s, loaded=%s, name='%s'",
+            bufnr,
+            tostring(vim.api.nvim_buf_is_valid(bufnr)),
+            tostring(vim.api.nvim_buf_is_loaded(bufnr)),
+            vim.api.nvim_buf_get_name(bufnr)
+        ))
+        
         if vim.api.nvim_buf_is_valid(bufnr) 
            and vim.api.nvim_buf_is_loaded(bufnr)
            and vim.api.nvim_buf_get_name(bufnr) ~= "" then
             table.insert(valid_buffers, bufnr)
         end
     end
+
+    -- Log number of valid buffers found
+    log.debug(string.format("Found %d valid buffers", #valid_buffers))
 
     -- Check if we have any valid buffers
     if #valid_buffers == 0 then

@@ -116,11 +116,16 @@ end
 ---@param content string The formatted diagnostic content to display
 function M.update_content(content)
     if type(content) ~= "string" then
+        log.error("Content must be a string, got: " .. type(content))
         vim.notify("Content must be a string", vim.log.levels.ERROR)
         return
     end
 
     log.debug(string.format("Updating content (length: %d)", #content))
+    if #content == 0 then
+        log.debug("Content is empty")
+    end
+    
     local bufnr = create_or_get_buffer()
     log.debug(string.format("Using buffer: %d", bufnr))
     
