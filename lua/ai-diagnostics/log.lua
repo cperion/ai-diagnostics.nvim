@@ -47,9 +47,8 @@ local function write_to_file(msg)
         return
     end
     
-    -- Only after directory is created, open file in append mode
-    local mode = vim.v.vim_did_enter and "a" or "w"  -- Overwrite on first open, append after
-    local file = io.open(config.file, mode)
+    -- Always open in write mode to overwrite
+    local file = io.open(config.file, "w")
     if not file then
         vim.notify(string.format("Failed to open log file '%s' for writing", config.file), vim.log.levels.ERROR)
         is_writing = false
