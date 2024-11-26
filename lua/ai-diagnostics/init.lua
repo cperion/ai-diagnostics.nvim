@@ -146,7 +146,6 @@ function M.get_buffer_diagnostics(bufnr)
 	local diagnostics = vim.diagnostic.get(bufnr)
 	log.debug(string.format("Raw diagnostics count: %d", #diagnostics))
 
-
 	-- Log each diagnostic for debugging
 	for i, diag in ipairs(diagnostics) do
 		local severity_str = diag.severity and vim.diagnostic.severity[diag.severity] or "UNKNOWN"

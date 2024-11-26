@@ -4,7 +4,7 @@ local M = {}
 ---@param filename string The filename to sanitize
 ---@return string Sanitized filename
 function M.sanitize_filename(filename)
-    return filename:gsub("[\n\r]", "")
+	return filename:gsub("[\n\r]", "")
 end
 
 ---Convert diagnostic severity to string
