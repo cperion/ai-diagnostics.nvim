@@ -107,6 +107,7 @@ local function create_or_get_buffer()
         pcall(vim.api.nvim_buf_set_option, bufnr, 'bufhidden', 'hide')
         pcall(vim.api.nvim_buf_set_option, bufnr, 'swapfile', false)
         pcall(vim.api.nvim_buf_set_option, bufnr, 'modifiable', true)
+        pcall(vim.api.nvim_buf_set_option, bufnr, 'buflisted', false)
 
         M.state.buf_id = bufnr
         return bufnr
