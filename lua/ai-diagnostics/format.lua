@@ -14,8 +14,15 @@ local function merge_contexts(diagnostics, contexts)
 	for i, context_lines in ipairs(contexts) do
 		local diagnostic = diagnostics[i]
 		for _, line in ipairs(context_lines) do
-			if not line_map[line.number] then
-				line_map[line.number] = {
+			-- Convert line number to number type if it's a string
+			local line_number = tonumber(line.number)
+			if not line_number then
+				log.warn("Invalid line number found: " .. tostring(line.number))
+				goto continue
+			end
+			
+			if not line_map[line_number] then
+				line_map[line_number] = {
 					content = line.content,
 					diagnostics = {},
 					is_context = true,
@@ -24,8 +31,10 @@ local function merge_contexts(diagnostics, contexts)
 			
 			-- Only add diagnostic if the line is explicitly marked as a diagnostic line
 			if line.is_diagnostic then
-				table.insert(line_map[line.number].diagnostics, diagnostic)
+				table.insert(line_map[line_number].diagnostics, diagnostic)
 			end
+			
+			::continue::
 		end
 	end
 
@@ -127,7 +136,7 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 
 				local show_line_numbers = require("ai-diagnostics").config.show_line_numbers
 				local formatted_line = show_line_numbers
-					and string.format("%4d: %s", line.number, line_content)
+					and string.format("%4d: %s", tonumber(line.number) or 0, line_content)
 					or line_content
 
 				if #line.diagnostics > 0 then
