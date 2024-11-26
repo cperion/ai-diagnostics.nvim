@@ -1,6 +1,13 @@
 local log = require("ai-diagnostics.log")
 local M = {}
 
+-- Helper function to defer and safely execute a function
+local function defer_fn(fn)
+    vim.schedule(function()
+        pcall(fn)
+    end)
+end
+
 -- Buffer name for the diagnostics window
 local BUFFER_NAME = "AI-Diagnostics"
 
@@ -56,20 +63,22 @@ local function create_or_get_buffer()
     local bufnr = vim.api.nvim_create_buf(false, true)
     
     -- Set buffer options first
-    vim.api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(bufnr, 'bufhidden', 'wipe')
-    vim.api.nvim_buf_set_option(bufnr, 'swapfile', false)
-    vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)
+    pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')
+    pcall(vim.api.nvim_buf_set_option, bufnr, 'bufhidden', 'wipe')
+    pcall(vim.api.nvim_buf_set_option, bufnr, 'swapfile', false)
+    pcall(vim.api.nvim_buf_set_option, bufnr, 'modifiable', true)
     
-    -- Defer buffer naming using vim.schedule
-    vim.schedule(function()
-        local ok, err = pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME)
-        if not ok then
-            -- If naming fails, try with numbered suffix
-            local i = 1
-            while not ok and i < 100 do -- Add safety limit
-                ok, err = pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME .. i)
-                i = i + 1
+    -- Defer buffer naming
+    defer_fn(function()
+        if vim.api.nvim_buf_is_valid(bufnr) then
+            local ok, err = pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME)
+            if not ok then
+                -- If naming fails, try with numbered suffix
+                local i = 1
+                while not ok and i < 100 do
+                    ok = pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME .. i)
+                    i = i + 1
+                end
             end
         end
     end)
@@ -190,37 +199,50 @@ function M.update_content(content)
         return
     end
 
-    -- Get or create buffer
-    local bufnr = create_or_get_buffer()
-    
-    -- Ensure buffer exists
-    if not vim.api.nvim_buf_is_valid(bufnr) then
-        log.error("Invalid buffer")
-        return
-    end
-    
-    -- Make buffer modifiable
-    vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)
-    
-    -- Clear existing content
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
-    
-    -- Split content into lines and update buffer
-    local lines = vim.split(content, "\n", { plain = true })
-    if #lines > 0 then
-        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-    else
-        -- If no content, show a message
-        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {"No diagnostics found"})
-    end
-    
-    -- Make buffer non-modifiable again
-    vim.api.nvim_buf_set_option(bufnr, 'modifiable', false)
-    
-    -- Ensure window exists and shows the buffer
-    if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
-        vim.api.nvim_win_set_buf(M.state.win_id, bufnr)
-    end
+    defer_fn(function()
+        -- Get or create buffer
+        local bufnr = create_or_get_buffer()
+        
+        -- Ensure buffer exists and is valid
+        if not (bufnr and vim.api.nvim_buf_is_valid(bufnr)) then
+            log.error("Invalid buffer")
+            return
+        end
+        
+        -- Check if buffer is in use
+        if is_buffer_in_use(bufnr) and bufnr ~= vim.api.nvim_win_get_buf(M.state.win_id) then
+            log.debug("Buffer in use by another window")
+            return
+        end
+        
+        -- Make buffer modifiable
+        pcall(vim.api.nvim_buf_set_option, bufnr, 'modifiable', true)
+        
+        -- Clear existing content
+        pcall(vim.api.nvim_buf_set_lines, bufnr, 0, -1, false, {})
+        
+        -- Split content into lines and update buffer
+        local lines = vim.split(content, "\n", { plain = true })
+        if #lines > 0 then
+            pcall(vim.api.nvim_buf_set_lines, bufnr, 0, -1, false, lines)
+        else
+            -- If no content, show a message
+            pcall(vim.api.nvim_buf_set_lines, bufnr, 0, -1, false, {"No diagnostics found"})
+        end
+        
+        -- Make buffer non-modifiable again
+        pcall(vim.api.nvim_buf_set_option, bufnr, 'modifiable', false)
+        
+        -- Ensure window exists and shows the buffer
+        if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
+            -- Defer the buffer switch to avoid race conditions
+            defer_fn(function()
+                if vim.api.nvim_win_is_valid(M.state.win_id) then
+                    pcall(vim.api.nvim_win_set_buf, M.state.win_id, bufnr)
+                end
+            end)
+        end
+    end)
 end
 
 return M
