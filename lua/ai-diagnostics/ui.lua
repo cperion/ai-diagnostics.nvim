@@ -81,33 +81,21 @@ local function create_or_get_buffer()
     local status, result = pcall(function()
         -- First check if we have a valid buffer already
         if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
-            local buf_name = vim.api.nvim_buf_get_name(M.state.buf_id)
-            if buf_name:match(BUFFER_NAME .. "$") then
-                return M.state.buf_id
-            end
+            return M.state.buf_id
         end
 
-        -- Look for existing buffer with our name
-        for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-            if vim.api.nvim_buf_is_valid(bufnr) then
-                local buf_name = vim.api.nvim_buf_get_name(bufnr)
-                if buf_name:match(BUFFER_NAME .. "$") then
-                    M.state.buf_id = bufnr
-                    return bufnr
-                end
-            end
-        end
-
-        -- Create new buffer if none exists
+        -- Create new buffer
         local bufnr = vim.api.nvim_create_buf(false, true)
         
         -- Set buffer options safely
-        pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME)
         pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')
-        pcall(vim.api.nvim_buf_set_option, bufnr, 'bufhidden', 'hide')
+        pcall(vim.api.nvim_buf_set_option, bufnr, 'bufhidden', 'wipe')  -- Changed from 'hide' to 'wipe'
         pcall(vim.api.nvim_buf_set_option, bufnr, 'swapfile', false)
         pcall(vim.api.nvim_buf_set_option, bufnr, 'modifiable', true)
         pcall(vim.api.nvim_buf_set_option, bufnr, 'buflisted', false)
+
+        -- Set buffer name after options
+        pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME)
 
         M.state.buf_id = bufnr
         return bufnr
