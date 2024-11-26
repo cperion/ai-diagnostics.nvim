@@ -169,28 +169,30 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 		for _, block in ipairs(merged) do
 			for _, line in ipairs(block.lines) do
 				local line_content = utils.truncate_string(line.content)
+				local formatted_line = line_content
+
+				-- Add diagnostics if present
 				if #line.diagnostics > 0 then
 					local diag_messages = {}
 					for _, diag in ipairs(line.diagnostics) do
-						local formatted_diag = format_inline_diagnostic(diag)
-						for diag_line in formatted_diag:gmatch("[^\r\n]+") do
-							table.insert(diag_messages, diag_line)
-						end
+						table.insert(diag_messages, format_inline_diagnostic(diag))
 					end
-					line_content = line_content .. string.rep(" ", math.max(40 - #line_content, 2)) .. table.concat(diag_messages, "  ")
+						
+					-- Add padding between code and diagnostics
+					local padding = math.max(40 - #line_content, 2)
+					formatted_line = formatted_line .. string.rep(" ", padding) .. table.concat(diag_messages, "  ")
 				end
 
-				local show_line_numbers = require("ai-diagnostics").config.show_line_numbers
-				local formatted_line = show_line_numbers
-					and string.format("%4d: %s", to_number(line.number) or 0, line_content)
-					or line_content
-
-				if #line.diagnostics > 0 then
-					table.insert(output, formatted_line)
-				else
-					table.insert(output, line_content)
+				-- Add line numbers if configured
+				if require("ai-diagnostics").config.show_line_numbers then
+					formatted_line = string.format("%4d: %s", line.number, formatted_line)
 				end
+
+				-- Always add the line to output
+				table.insert(output, formatted_line)
 			end
+			-- Add a blank line between blocks
+			table.insert(output, "")
 		end
 	end
 
