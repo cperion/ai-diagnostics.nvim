@@ -2,25 +2,25 @@ local M = {}
 
 -- Log levels
 M.levels = {
-    DEBUG = 1,
-    INFO = 2,
-    WARN = 3,
-    ERROR = 4,
+	DEBUG = 1,
+	INFO = 2,
+	WARN = 3,
+	ERROR = 4,
 }
 
 local level_strings = {
-    [1] = "DEBUG",
-    [2] = "INFO",
-    [3] = "WARN",
-    [4] = "ERROR",
+	[1] = "DEBUG",
+	[2] = "INFO",
+	[3] = "WARN",
+	[4] = "ERROR",
 }
 
 -- Internal state
 local config = {
-    level = M.levels.INFO,
-    file = nil,
-    max_size = 1024 * 1024, -- 1MB
-    silent = false, -- Don't show notifications when true
+	level = M.levels.INFO,
+	file = nil,
+	max_size = 1024 * 1024, -- 1MB
+	silent = false, -- Don't show notifications when true
 }
 
 -- Thread safety flags
@@ -30,97 +30,111 @@ local last_error_time = 0
 local ERROR_THROTTLE_MS = 1000 -- Minimum ms between error notifications
 
 local function format_log(level, msg)
-    if type(msg) ~= "string" then
-        msg = vim.inspect(msg)
-    end
-    local timestamp = os.date("%Y-%m-%d %H:%M:%S")
-    return string.format("[%s] [%s] %s\n", timestamp, level_strings[level], msg)
+	if type(msg) ~= "string" then
+		msg = vim.inspect(msg)
+	end
+	local timestamp = os.date("%Y-%m-%d %H:%M:%S")
+	return string.format("[%s] [%s] %s\n", timestamp, level_strings[level], msg)
 end
 
 local function notify_error(msg)
-    if config.silent then return end
-    
-    -- Throttle error notifications
-    local current_time = vim.loop.now()
-    if current_time - last_error_time >= ERROR_THROTTLE_MS then
-        vim.schedule(function()
-            vim.notify(msg, vim.log.levels.ERROR)
-        end)
-        last_error_time = current_time
-    end
+	if config.silent then
+		return
+	end
+
+	-- Throttle error notifications
+	local current_time = vim.loop.now()
+	if current_time - last_error_time >= ERROR_THROTTLE_MS then
+		vim.schedule(function()
+			vim.notify(msg, vim.log.levels.ERROR)
+		end)
+		last_error_time = current_time
+	end
 end
 
 local function process_write_queue()
-    if #write_queue == 0 or is_writing then return end
-    
-    is_writing = true
-    local msg = table.remove(write_queue, 1)
+	if #write_queue == 0 or is_writing then
+		return
+	end
 
-    -- Ensure directory exists
-    local dir = vim.fn.fnamemodify(config.file, ":h")
-    local mkdir_ok = pcall(vim.fn.mkdir, dir, "p")
-    
-    if not mkdir_ok then
-        notify_error(string.format("Failed to create log directory '%s'", dir))
-        is_writing = false
-        process_write_queue()
-        return
-    end
+	is_writing = true
+	local msg = table.remove(write_queue, 1)
 
-    -- Check file size
-    local current_size = 0
-    local stat = vim.loop.fs_stat(config.file)
-    if stat then
-        current_size = stat.size
-    end
+	-- Ensure directory exists
+	local dir = vim.fn.fnamemodify(config.file, ":h")
+	local mkdir_ok = pcall(vim.fn.mkdir, dir, "p")
 
-    if current_size >= config.max_size then
-        -- Rotate log file
-        local backup = config.file .. ".old"
-        pcall(vim.loop.fs_unlink, backup)
-        pcall(vim.loop.fs_rename, config.file, backup)
-    end
+	if not mkdir_ok then
+		notify_error(string.format("Failed to create log directory '%s'", dir))
+		is_writing = false
+		process_write_queue()
+		return
+	end
 
-    -- Write to file
-    local file = io.open(config.file, "a")
-    if not file then
-        notify_error(string.format("Failed to open log file '%s'", config.file))
-        is_writing = false
-        process_write_queue()
-        return
-    end
+	-- Check file size
+	local current_size = 0
+	local stat = vim.loop.fs_stat(config.file)
+	if stat then
+		current_size = stat.size
+	end
 
-    local ok = pcall(function()
-        file:write(msg)
-        file:flush()
-        file:close()
-    end)
+	if current_size >= config.max_size then
+		-- Rotate log file
+		local backup = config.file .. ".old"
+		pcall(vim.loop.fs_unlink, backup)
+		pcall(vim.loop.fs_rename, config.file, backup)
+	end
 
-    if not ok then
-        notify_error("Failed to write to log file")
-    end
+	-- Write to file
+	local file = io.open(config.file, "a")
+	if not file then
+		notify_error(string.format("Failed to open log file '%s'", config.file))
+		is_writing = false
+		process_write_queue()
+		return
+	end
 
-    is_writing = false
-    vim.schedule(process_write_queue)
+	local ok = pcall(function()
+		file:write(msg)
+		file:flush()
+		file:close()
+	end)
+
+	if not ok then
+		notify_error("Failed to write to log file")
+	end
+
+	is_writing = false
+	vim.schedule(process_write_queue)
 end
 
 local function write_to_file(msg)
-    if not config.file then return end
-    table.insert(write_queue, msg)
-    vim.schedule(process_write_queue)
+	if not config.file then
+		return
+	end
+	table.insert(write_queue, msg)
+	vim.schedule(process_write_queue)
 end
 
 function M.log(level, msg)
-    if level >= config.level then
-        local formatted = format_log(level, msg)
-        write_to_file(formatted)
-    end
+	if level >= config.level then
+		local formatted = format_log(level, msg)
+		write_to_file(formatted)
+	end
 end
 
-function M.debug(msg) M.log(M.levels.DEBUG, msg) end
-function M.info(msg)  M.log(M.levels.INFO, msg)  end
-function M.warn(msg)  M.log(M.levels.WARN, msg)  end
-function M.error(msg) M.log(M.levels.ERROR, msg) end
+function M.debug(msg)
+	M.log(M.levels.DEBUG, msg)
+end
+function M.info(msg)
+	M.log(M.levels.INFO, msg)
+end
+function M.warn(msg)
+	M.log(M.levels.WARN, msg)
+end
+function M.error(msg)
+	M.log(M.levels.ERROR, msg)
+end
 
 function M.setup(opts)
 	if opts then
