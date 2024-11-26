@@ -112,7 +112,10 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 				if #line.diagnostics > 0 then
 					local diag_messages = {}
 					for _, diag in ipairs(line.diagnostics) do
-						table.insert(diag_messages, format_inline_diagnostic(diag))
+						local formatted_diag = format_inline_diagnostic(diag)
+						for diag_line in formatted_diag:gmatch("[^\r\n]+") do
+							table.insert(diag_messages, diag_line)
+						end
 					end
 					line_content = line_content .. " " .. table.concat(diag_messages, " ")
 				end
