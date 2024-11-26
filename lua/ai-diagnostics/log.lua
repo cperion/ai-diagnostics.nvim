@@ -29,13 +29,26 @@ end
 local function write_to_file(msg)
     if not config.file then return end
     
+    -- Ensure directory exists before writing
+    local dir = vim.fn.fnamemodify(config.file, ":h")
+    vim.fn.mkdir(dir, "p")
+    
     -- Open file in append mode
     local mode = vim.v.vim_did_enter and "a" or "w"  -- Overwrite on first open, append after
     local file = io.open(config.file, mode)
-    if not file then return end
+    if not file then
+        vim.notify(string.format("Failed to open log file '%s' for writing", config.file), vim.log.levels.ERROR)
+        return
+    end
     
-    file:write(msg)
-    file:close()
+    local ok, err = pcall(function()
+        file:write(msg)
+        file:close()
+    end)
+    
+    if not ok then
+        vim.notify(string.format("Failed to write to log file: %s", err), vim.log.levels.ERROR)
+    end
 end
 
 function M.log(level, msg)
@@ -57,6 +70,9 @@ function M.setup(opts)
         config.max_size = opts.max_size or config.max_size
         
         if config.file then
+            -- Expand the path fully
+            config.file = vim.fn.expand(config.file)
+            
             -- Create full directory path
             local log_dir = vim.fn.fnamemodify(config.file, ":h")
             -- Use recursive directory creation with full path
@@ -68,7 +84,20 @@ function M.setup(opts)
                 vim.notify("Failed to create log directory: " .. tostring(err), vim.log.levels.ERROR)
                 -- Disable logging if we can't create the directory
                 config.file = nil
+                return
             end
+            
+            -- Try to create/clear the log file
+            local file = io.open(config.file, "w")
+            if not file then
+                vim.notify(string.format("Failed to create log file '%s'", config.file), vim.log.levels.ERROR)
+                config.file = nil
+                return
+            end
+            file:close()
+            
+            -- Write initial log entry
+            M.info(string.format("Log file initialized at '%s'", config.file))
         end
     end
 end
