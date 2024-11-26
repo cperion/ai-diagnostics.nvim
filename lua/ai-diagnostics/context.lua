@@ -7,6 +7,13 @@ local M = {}
 ---@param config table Configuration options
 ---@return table[] Array of line information
 function M.get_diagnostic_context(bufnr, diagnostic, config)
+    log.debug(string.format("Getting context for diagnostic in buffer %d", bufnr))
+    log.debug(string.format("Diagnostic info: severity=%s, message='%s', lnum=%s, end_lnum=%s",
+        tostring(diagnostic.severity),
+        diagnostic.message or "no message",
+        tostring(diagnostic.lnum),
+        tostring(diagnostic.end_lnum)))
+
     if not vim.api.nvim_buf_is_valid(bufnr) then
         log.error("Invalid buffer")
         return {}

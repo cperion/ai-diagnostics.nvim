@@ -117,12 +117,11 @@ end
 function M.update_content(content)
     if type(content) ~= "string" then
         log.error("Content must be a string, got: " .. type(content))
-        vim.notify("Content must be a string", vim.log.levels.ERROR)
         return
     end
 
     log.debug(string.format("Updating content (length: %d)", #content))
-    log.debug("Content preview: " .. string.sub(content, 1, 100)) -- Log first 100 chars
+    log.debug("Content preview: " .. string.sub(content, 1, 100))
     
     if #content == 0 then
         log.warn("Attempting to update with empty content")
@@ -135,12 +134,6 @@ function M.update_content(content)
     log.debug(string.format("Buffer modifiable before: %s", 
         vim.api.nvim_buf_get_option(bufnr, 'modifiable')))
     
-    -- Save window view
-    local win_view = nil
-    if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
-        win_view = vim.api.nvim_win_call(M.state.win_id, vim.fn.winsaveview)
-    end
-    
     -- Make buffer modifiable
     vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)
     
@@ -151,13 +144,6 @@ function M.update_content(content)
     
     -- Make buffer non-modifiable again
     vim.api.nvim_buf_set_option(bufnr, 'modifiable', false)
-    
-    -- Restore window view
-    if win_view and M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
-        vim.api.nvim_win_call(M.state.win_id, function()
-            vim.fn.winrestview(win_view)
-        end)
-    end
 end
 
 return M
