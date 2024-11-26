@@ -77,13 +77,36 @@ function M.open_window(position)
         M.close_window()
     end
 
-    -- Create window if needed
+    -- Create floating window if needed
     if not M.is_open() then
-        local cmd = position == "bottom" and "botright new" or "vertical botright new"
-        vim.cmd(cmd)
+        local width, height
+        local row, col
+
+        if position == "right" then
+            width = math.floor(vim.o.columns * 0.3)
+            height = math.floor(vim.o.lines * 0.8)
+            row = math.floor((vim.o.lines - height) / 2)
+            col = vim.o.columns - width
+        elseif position == "bottom" then
+            width = math.floor(vim.o.columns * 0.8)
+            height = math.floor(vim.o.lines * 0.3)
+            row = vim.o.lines - height
+            col = math.floor((vim.o.columns - width) / 2)
+        else
+            error("Invalid position: " .. tostring(position))
+        end
+
+        local opts = {
+            relative = 'editor',
+            width = width,
+            height = height,
+            row = row,
+            col = col,
+            style = 'minimal',
+            border = 'single',
+        }
         
-        local win = vim.api.nvim_get_current_win()
-        vim.api.nvim_win_set_buf(win, bufnr)
+        local win = vim.api.nvim_open_win(bufnr, true, opts)
         
         -- Set window options
         vim.wo[win].number = false
@@ -91,13 +114,6 @@ function M.open_window(position)
         vim.wo[win].wrap = false
         vim.wo[win].winfixwidth = true
         vim.wo[win].winfixheight = true
-
-        -- Set size
-        if position == "bottom" then
-            vim.api.nvim_win_set_height(win, 10)
-        else
-            vim.api.nvim_win_set_width(win, math.floor(vim.o.columns * 0.3))
-        end
 
         M.state.win_id = win
         M.state.position = position
