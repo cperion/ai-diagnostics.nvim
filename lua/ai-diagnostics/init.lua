@@ -148,6 +148,27 @@ function M.get_buffer_diagnostics(bufnr)
 
 	-- Log each diagnostic for debugging
 	for i, diag in ipairs(diagnostics) do
+	    local severity_str = diag.severity and vim.diagnostic.severity[diag.severity] or "UNKNOWN"
+	    local line_num = "unknown"
+
+	    -- Safely access the range information
+	    if diag.range and diag.range.start then
+	        line_num = diag.range.start.line
+	    end
+
+	    log.debug(
+	        string.format(
+	            "Diagnostic %d: severity=%s, message=%s, line=%s",
+	            i,
+	            severity_str,
+	            diag.message or "no message",
+	            tostring(line_num)
+	        )
+	    )
+	end
+
+	-- Log each diagnostic for debugging
+	for i, diag in ipairs(diagnostics) do
 		local severity_str = diag.severity and vim.diagnostic.severity[diag.severity] or "UNKNOWN"
 		local line_num = "unknown"
 

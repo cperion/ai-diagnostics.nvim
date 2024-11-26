@@ -134,6 +134,13 @@ function M.update_content(content)
     log.debug(string.format("Buffer modifiable before: %s", 
         vim.api.nvim_buf_get_option(bufnr, 'modifiable')))
     
+    local bufnr = create_or_get_buffer()
+    log.debug(string.format("Using buffer: %d", bufnr))
+    
+    -- Add buffer state logging
+    log.debug(string.format("Buffer modifiable before: %s", 
+        vim.api.nvim_buf_get_option(bufnr, 'modifiable')))
+    
     -- Make buffer modifiable
     vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)
     

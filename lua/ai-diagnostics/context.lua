@@ -54,6 +54,7 @@ function M.get_diagnostic_context(bufnr, diagnostic, config)
         })
     end
 
+    log.debug(string.format("Generated context lines: %d", #lines))
     return lines
 end
 
