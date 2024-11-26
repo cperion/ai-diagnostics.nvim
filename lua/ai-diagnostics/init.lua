@@ -260,12 +260,15 @@ end
 
 ---Toggle the diagnostics window
 ---@param position string|nil "bottom" or "right" (defaults to "bottom")
-function M.toggle_diagnostics_window(position)
+function M.toggle_window(position)
 	if ui.is_open() then
 		ui.close_window()
 	else
 		M.show_diagnostics_window(position)
 	end
 end
+
+-- Alias for backward compatibility
+M.toggle_diagnostics_window = M.toggle_window
 
 return M

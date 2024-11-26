@@ -10,13 +10,13 @@ M.state = {
 
 -- Create the persistent buffer only once
 local function ensure_buffer()
-    if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
+    if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) and require("ai-diagnostics").config.reuse_buffer then
         return M.state.buf_id
     end
 
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(buf, 'bufhidden', 'hide')  -- Changed to hide
+    vim.api.nvim_buf_set_option(buf, 'bufhidden', require("ai-diagnostics").config.bufhidden or 'hide')
     vim.api.nvim_buf_set_option(buf, 'swapfile', false)
     vim.api.nvim_buf_set_option(buf, 'buflisted', false)
     vim.api.nvim_buf_set_option(buf, 'modifiable', true)
