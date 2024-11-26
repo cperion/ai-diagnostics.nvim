@@ -5,7 +5,6 @@ return {
       log = {
         enabled = true,
         level = "DEBUG", -- Set to DEBUG to see all logs while debugging
-        file = vim.fn.stdpath("cache") .. "/ai-diagnostics.log",
       },
     })
 
