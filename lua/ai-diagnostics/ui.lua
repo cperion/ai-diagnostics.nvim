@@ -127,12 +127,6 @@ function M.update_content(content)
         log.warn("Attempting to update with empty content")
     end
     
-    local bufnr = create_or_get_buffer()
-    log.debug(string.format("Using buffer: %d", bufnr))
-    
-    -- Add buffer state logging
-    log.debug(string.format("Buffer modifiable before: %s", 
-        vim.api.nvim_buf_get_option(bufnr, 'modifiable')))
     
     local bufnr = create_or_get_buffer()
     log.debug(string.format("Using buffer: %d", bufnr))

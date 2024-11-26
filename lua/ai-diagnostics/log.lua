@@ -26,8 +26,12 @@ local function format_log(level, msg)
     return string.format("[%s] [%s] %s\n", timestamp, level_strings[level], msg)
 end
 
+local is_writing = false
+
 local function write_to_file(msg)
-    if not config.file then return end
+    if not config.file or is_writing then return end
+    
+    is_writing = true
     
     -- Ensure directory exists before writing
     local dir = vim.fn.fnamemodify(config.file, ":h")
@@ -39,6 +43,7 @@ local function write_to_file(msg)
     
     if not mkdir_ok then
         vim.notify(string.format("Failed to create log directory '%s'", dir), vim.log.levels.ERROR)
+        is_writing = false
         return
     end
     
@@ -47,6 +52,7 @@ local function write_to_file(msg)
     local file = io.open(config.file, mode)
     if not file then
         vim.notify(string.format("Failed to open log file '%s' for writing", config.file), vim.log.levels.ERROR)
+        is_writing = false
         return
     end
     
@@ -58,6 +64,8 @@ local function write_to_file(msg)
     if not ok then
         vim.notify(string.format("Failed to write to log file: %s", err), vim.log.levels.ERROR)
     end
+    
+    is_writing = false
 end
 
 function M.log(level, msg)
