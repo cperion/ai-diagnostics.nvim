@@ -53,6 +53,9 @@ function M.setup(user_config)
 		-- Expand the path fully to avoid any path issues
 		M.config.log.file = vim.fn.expand(M.config.log.file)
 		
+		-- Notify user of resolved log path
+		vim.notify(string.format("AI Diagnostics log file: %s", M.config.log.file), vim.log.levels.INFO)
+		
 		-- Create full directory path
 		local log_dir = vim.fn.fnamemodify(M.config.log.file, ":h")
 		
