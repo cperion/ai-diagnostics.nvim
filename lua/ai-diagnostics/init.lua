@@ -155,10 +155,8 @@ function M.get_buffer_diagnostics(bufnr)
 		local severity_str = diag.severity and vim.diagnostic.severity[diag.severity] or "UNKNOWN"
 		local line_num = "unknown"
 
-		-- Safely access the range information
-		if diag.range and diag.range.start then
-			line_num = diag.range.start.line
-		end
+		-- Get line number directly from diagnostic
+		line_num = diag.lnum or "unknown"
 
 		log.debug(
 			string.format(
