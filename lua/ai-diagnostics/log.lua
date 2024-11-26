@@ -31,9 +31,18 @@ local function write_to_file(msg)
     
     -- Ensure directory exists before writing
     local dir = vim.fn.fnamemodify(config.file, ":h")
-    vim.fn.mkdir(dir, "p")
     
-    -- Open file in append mode
+    -- Create directory with "p" flag BEFORE trying to open the file
+    local mkdir_ok = pcall(function()
+        vim.fn.mkdir(dir, "p")
+    end)
+    
+    if not mkdir_ok then
+        vim.notify(string.format("Failed to create log directory '%s'", dir), vim.log.levels.ERROR)
+        return
+    end
+    
+    -- Only after directory is created, open file in append mode
     local mode = vim.v.vim_did_enter and "a" or "w"  -- Overwrite on first open, append after
     local file = io.open(config.file, mode)
     if not file then
