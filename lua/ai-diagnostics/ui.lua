@@ -92,19 +92,28 @@ local function create_or_get_buffer()
     local status, bufnr = pcall(function()
         local buf = vim.api.nvim_create_buf(false, true)
         
-        -- Set buffer options
-        vim.api.nvim_buf_set_name(buf, BUFFER_NAME)
+        -- Set buffer options first
         vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
         vim.api.nvim_buf_set_option(buf, 'bufhidden', 'hide')
         vim.api.nvim_buf_set_option(buf, 'swapfile', false)
         vim.api.nvim_buf_set_option(buf, 'buflisted', false)
         vim.api.nvim_buf_set_option(buf, 'modifiable', true)
 
+        -- Try to set buffer name, if it fails, generate a unique name
+        local name_set, _ = pcall(vim.api.nvim_buf_set_name, buf, BUFFER_NAME)
+        if not name_set then
+            local i = 1
+            while not name_set do
+                name_set, _ = pcall(vim.api.nvim_buf_set_name, buf, BUFFER_NAME .. i)
+                i = i + 1
+            end
+        end
+
         -- Add buffer-local autocmd to prevent renaming
         vim.api.nvim_create_autocmd("BufWritePre", {
             buffer = buf,
             callback = function()
-                vim.api.nvim_buf_set_name(buf, BUFFER_NAME)
+                pcall(vim.api.nvim_buf_set_name, buf, vim.api.nvim_buf_get_name(buf))
             end
         })
 
