@@ -120,7 +120,7 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 							table.insert(diag_messages, diag_line)
 						end
 					end
-					line_content = line_content .. "  " .. table.concat(diag_messages, "  ")  -- Use two spaces between diagnostics
+					line_content = line_content .. string.rep(" ", math.max(40 - #line_content, 2)) .. table.concat(diag_messages, "  ")
 				end
 
 				local show_line_numbers = require("ai-diagnostics").config.show_line_numbers
