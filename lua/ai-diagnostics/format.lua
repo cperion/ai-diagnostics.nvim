@@ -121,10 +121,10 @@ end
 ---@param diagnostic table The diagnostic to format
 ---@return string Formatted diagnostic message
 local function format_inline_diagnostic(diagnostic)
-	return string.format("[%s: %s]", 
-		utils.severity_to_string(diagnostic.severity), 
-		diagnostic.message:gsub("^%s+", ""):gsub("%s+$", "")  -- Trim whitespace
-	)
+    return string.format("[%s: %s]", 
+        utils.severity_to_string(diagnostic.severity), 
+        diagnostic.message:gsub("^%s+", ""):gsub("%s+$", "")  -- Trim whitespace
+    )
 end
 
 ---Format diagnostics with merged context, grouped by file
@@ -169,28 +169,27 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 
 		for _, block in ipairs(merged) do
 			for _, line in ipairs(block.lines) do
-				local line_content = utils.truncate_string(line.content)
-				local formatted_line = line_content
+                local line_content = utils.truncate_string(line.content)
+                local formatted_line = line_content
 
-				-- Add diagnostics if present
-				if #line.diagnostics > 0 then
-					local diag_messages = {}
-					for _, diag in ipairs(line.diagnostics) do
-						table.insert(diag_messages, format_inline_diagnostic(diag))
-					end
-						
-					-- Add padding between code and diagnostics
-					local padding = math.max(40 - #line_content, 2)
-					formatted_line = formatted_line .. string.rep(" ", padding) .. table.concat(diag_messages, "  ")
-				end
+                -- Add diagnostics if present
+                if #line.diagnostics > 0 then
+                    local diag_messages = {}
+                    for _, diag in ipairs(line.diagnostics) do
+                        table.insert(diag_messages, format_inline_diagnostic(diag))
+                    end
+                    
+                    -- Add two spaces between code and diagnostics
+                    formatted_line = formatted_line .. "  " .. table.concat(diag_messages, "  ")
+                end
 
-				-- Add line numbers if configured
-				if require("ai-diagnostics").config.show_line_numbers then
-					formatted_line = string.format("%4d: %s", line.number, formatted_line)
-				end
+                -- Add line numbers if configured
+                if require("ai-diagnostics").config.show_line_numbers then
+                    formatted_line = string.format("%4d: %s", line.number, formatted_line)
+                end
 
-				-- Always add the line to output
-				table.insert(output, formatted_line)
+                -- Always add the line to output
+                table.insert(output, formatted_line)
 			end
 			-- Add a blank line between blocks
 			table.insert(output, "")
