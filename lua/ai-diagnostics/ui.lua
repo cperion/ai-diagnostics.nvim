@@ -44,45 +44,50 @@ M.state = {
 ---Create or get the diagnostics buffer
 ---@return number Buffer number
 local function create_or_get_buffer()
-	-- First try to find existing buffer
-	local existing_bufnr
-	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-		if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_get_name(buf):match(BUFFER_NAME .. "$") then
-			existing_bufnr = buf
-			break
-		end
-	end
+    -- First try to find existing buffer
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_valid(buf) then
+            local bufname = vim.api.nvim_buf_get_name(buf)
+            if bufname:match(BUFFER_NAME .. "$") then
+                -- Reset buffer content and options
+                vim.bo[buf].modifiable = true
+                vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
+                
+                -- Ensure buffer options are set correctly
+                vim.bo[buf].buftype = "nofile"
+                vim.bo[buf].bufhidden = "wipe"
+                vim.bo[buf].swapfile = false
+                
+                return buf
+            end
+        end
+    end
 
-	-- If found and valid, return it
-	if existing_bufnr and vim.api.nvim_buf_is_valid(existing_bufnr) then
-		return existing_bufnr
-	end
+    -- If no existing buffer found, create a new one
+    local bufnr = vim.api.nvim_create_buf(false, true)
 
-	-- Create new buffer with deferred naming
-	local bufnr = vim.api.nvim_create_buf(false, true)
+    -- Set buffer options
+    vim.bo[bufnr].buftype = "nofile"
+    vim.bo[bufnr].bufhidden = "wipe"
+    vim.bo[bufnr].swapfile = false
+    vim.bo[bufnr].modifiable = true
 
-	-- Set buffer options first
-	vim.bo[bufnr].buftype = "nofile"
-	vim.bo[bufnr].bufhidden = "wipe"
-	vim.bo[bufnr].swapfile = false
-	vim.bo[bufnr].modifiable = true
+    -- Defer buffer naming
+    defer_fn(function()
+        if vim.api.nvim_buf_is_valid(bufnr) then
+            local ok, err = pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME)
+            if not ok then
+                -- If naming fails, try with numbered suffix
+                local i = 1
+                while not ok and i < 100 do
+                    ok = pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME .. i)
+                    i = i + 1
+                end
+            end
+        end
+    end)
 
-	-- Defer buffer naming
-	defer_fn(function()
-		if vim.api.nvim_buf_is_valid(bufnr) then
-			local ok, err = pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME)
-			if not ok then
-				-- If naming fails, try with numbered suffix
-				local i = 1
-				while not ok and i < 100 do
-					ok = pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME .. i)
-					i = i + 1
-				end
-			end
-		end
-	end)
-
-	return bufnr
+    return bufnr
 end
 
 ---Open diagnostics window in specified position
