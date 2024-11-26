@@ -22,7 +22,7 @@ function M.setup(user_config)
 	if M.config.live_updates then
 		vim.api.nvim_create_autocmd("DiagnosticChanged", {
 			callback = function()
-				if ui.win_id and vim.api.nvim_win_is_valid(ui.win_id) then
+				if ui.state.win_id and vim.api.nvim_win_is_valid(ui.state.win_id) then
 					local content = M.get_workspace_diagnostics()
 					ui.update_content(content)
 				end
@@ -114,7 +114,7 @@ end
 ---Toggle the diagnostics window
 ---@param position string|nil "bottom" or "right" (defaults to "bottom") 
 function M.toggle_diagnostics_window(position)
-	if ui.win_id and vim.api.nvim_win_is_valid(ui.win_id) then
+	if ui.is_open() then
 		ui.close_window()
 	else
 		M.show_diagnostics_window(position)
