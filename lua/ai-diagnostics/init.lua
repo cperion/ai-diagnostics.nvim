@@ -60,12 +60,13 @@ function M.setup(user_config)
 		local log_dir = vim.fn.fnamemodify(M.config.log.file, ":h")
 		
 		-- Ensure directory exists
-		local mkdir_ok, mkdir_err = pcall(function()
-			vim.fn.mkdir(log_dir, "p")
-		end)
+		local log_dir = vim.fn.fnamemodify(M.config.log.file, ":h")
 		
-		if not mkdir_ok then
-			vim.notify(string.format("Failed to create log directory '%s': %s", log_dir, tostring(mkdir_err)), vim.log.levels.WARN)
+		-- Use os.execute to create directories
+		local mkdir_ok = os.execute(string.format("mkdir -p '%s'", log_dir))
+		
+		if mkdir_ok ~= 0 and mkdir_ok ~= true then  -- Check both possible success values
+			vim.notify(string.format("Failed to create log directory '%s' using mkdir -p", log_dir), vim.log.levels.WARN)
 			M.config.log.enabled = false
 		else
 			-- Try to create/clear the log file
