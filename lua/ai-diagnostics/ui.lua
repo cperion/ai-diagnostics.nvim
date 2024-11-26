@@ -87,25 +87,13 @@ M.state = {
 local function create_or_get_buffer()
     log.debug("Attempting to create or get buffer")
 
-    -- First, check if existing buffer is valid
+    -- If we have a valid buffer in state, use it
     if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
-        log.debug(string.format("Returning existing valid buffer: %s", tostring(M.state.buf_id)))
+        log.debug(string.format("Using existing buffer from state: %s", tostring(M.state.buf_id)))
         return M.state.buf_id
     end
 
-    -- Find existing buffer by name
-    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        if vim.api.nvim_buf_is_valid(buf) then
-            local buf_name = vim.api.nvim_buf_get_name(buf)
-            if buf_name:match(BUFFER_NAME .. "$") then
-                log.debug(string.format("Found existing buffer by name: %s", tostring(buf)))
-                M.state.buf_id = buf
-                return buf
-            end
-        end
-    end
-
-    -- Create new buffer if none exists
+    -- Create new buffer
     local buf = vim.api.nvim_create_buf(false, true)
     log.debug(string.format("Created new buffer: %s", tostring(buf)))
     
@@ -118,7 +106,8 @@ local function create_or_get_buffer()
     vim.api.nvim_buf_set_option(buf, 'filetype', 'ai-diagnostics')
 
     -- Set buffer name
-    vim.api.nvim_buf_set_name(buf, BUFFER_NAME)
+    local full_name = vim.fn.getcwd() .. '/' .. BUFFER_NAME
+    vim.api.nvim_buf_set_name(buf, full_name)
 
     M.state.buf_id = buf
     log.debug(string.format("Buffer created and state updated. buf_id=%s", tostring(M.state.buf_id)))
@@ -227,16 +216,28 @@ end
 ---Toggle the diagnostics window
 ---@param position string|nil "bottom" or "right" (defaults to last used position or "bottom")
 function M.toggle_window(position)
+    log.debug(string.format("Checking window open status: is_open=%s, state.is_open=%s, win_id=%s, win_valid=%s", 
+        tostring(M.is_open()),
+        tostring(M.state.is_open), 
+        tostring(M.state.win_id),
+        tostring(M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id))))
+
     -- If window is open, close it
-    if M.state.is_open then
+    if M.is_open() then
         M.close_window()
         return
+    end
+
+    -- If we have a valid buffer but no window, clean it up first
+    if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
+        pcall(vim.api.nvim_buf_delete, M.state.buf_id, { force = true })
+        M.state.buf_id = nil
     end
 
     -- Determine position
     position = position or M.state.position or "bottom"
     
-    -- Get or create buffer (this ensures we reuse an existing buffer)
+    -- Create new buffer
     local bufnr = create_or_get_buffer()
     
     if not bufnr then
@@ -269,6 +270,7 @@ function M.toggle_window(position)
 
     -- Update state
     M.state.win_id = win_id
+    M.state.buf_id = bufnr
     M.state.is_open = true
     M.state.position = position
     
