@@ -17,7 +17,7 @@ M.default_config = {
     log = {
         enabled = true,
         level = "INFO",
-        file = vim.fn.stdpath("state") .. "/log/ai-diagnostics.log",
+        file = nil, -- Will default to stdpath("state")/log/ai-diagnostics.log
         max_size = 1024 * 1024, -- 1MB
     },
 }

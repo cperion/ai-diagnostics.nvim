@@ -45,6 +45,11 @@ function M.setup(user_config)
 	
 	-- Setup logging
 	if M.config.log.enabled then
+		-- Set default log file path if none provided
+		if not M.config.log.file then
+			M.config.log.file = vim.fn.stdpath("state") .. "/log/ai-diagnostics.log"
+		end
+		
 		-- Expand the path fully to avoid any path issues
 		M.config.log.file = vim.fn.expand(M.config.log.file)
 		
