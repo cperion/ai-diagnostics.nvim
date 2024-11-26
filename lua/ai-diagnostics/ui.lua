@@ -10,31 +10,53 @@ M.state = {
 
 -- Create the persistent buffer only once
 local function ensure_buffer()
-    if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) and require("ai-diagnostics").config.reuse_buffer then
+    -- If we have a valid buffer and reuse is enabled, return it
+    if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
+        log.debug("Returning existing valid buffer: " .. M.state.buf_id)
         return M.state.buf_id
     end
 
+    -- Create new buffer with proper options
     local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(buf, 'bufhidden', require("ai-diagnostics").config.bufhidden or 'hide')
-    vim.api.nvim_buf_set_option(buf, 'swapfile', false)
-    vim.api.nvim_buf_set_option(buf, 'buflisted', false)
-    vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-    vim.api.nvim_buf_set_option(buf, 'filetype', 'ai-diagnostics')
+    log.debug("Created new buffer: " .. buf)
+    
+    -- Set buffer options
+    local options = {
+        buftype = 'nofile',
+        bufhidden = require("ai-diagnostics").config.bufhidden or 'hide',
+        swapfile = false,
+        buflisted = false,
+        modifiable = true,
+        filetype = 'ai-diagnostics'
+    }
+    
+    for opt, val in pairs(options) do
+        vim.api.nvim_buf_set_option(buf, opt, val)
+    end
 
+    -- Update state
     M.state.buf_id = buf
+    log.debug("Buffer created and state updated. buf_id=" .. buf)
+    
     return buf
 end
 
 function M.setup()
-    -- Create the persistent buffer
-    ensure_buffer()
-
     -- Setup cleanup on exit
     vim.api.nvim_create_autocmd('VimLeavePre', {
         callback = function()
             if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
                 vim.api.nvim_buf_delete(M.state.buf_id, { force = true })
+            end
+        end,
+    })
+
+    -- Add buffer cleanup on window close
+    vim.api.nvim_create_autocmd('WinClosed', {
+        callback = function(args)
+            local win_id = tonumber(args.match)
+            if win_id == M.state.win_id then
+                M.state.win_id = nil
             end
         end,
     })
@@ -85,8 +107,16 @@ end
 
 function M.close_window()
     if M.is_open() then
-        vim.api.nvim_win_close(M.state.win_id, true)
+        local win_id = M.state.win_id
+        log.debug("Closing window - Initial state: is_open=" .. tostring(M.is_open()) .. ", win_id=" .. tostring(win_id) .. ", buf_id=" .. tostring(M.state.buf_id))
+        
+        -- Close the window
+        vim.api.nvim_win_close(win_id, true)
+        
+        -- Reset state
         M.state.win_id = nil
+        
+        log.debug("Window closed - Final state: is_open=" .. tostring(M.is_open()) .. ", win_id=" .. tostring(M.state.win_id) .. ", buf_id=" .. tostring(M.state.buf_id) .. ", old_win_id=" .. tostring(win_id))
     end
 end
 
