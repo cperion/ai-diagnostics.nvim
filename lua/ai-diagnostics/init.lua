@@ -156,7 +156,7 @@ function M.get_buffer_diagnostics(bufnr)
 		local line_num = "unknown"
 
 		-- Get line number directly from diagnostic
-		line_num = diag.lnum or "unknown"
+		line_num = diag.lnum and tostring(diag.lnum) or "unknown"
 
 		log.debug(
 			string.format(
