@@ -100,16 +100,18 @@ end
 ---@param bufnr number|nil Buffer number (defaults to current buffer)
 ---@return string Formatted diagnostic output with context
 function M.get_buffer_diagnostics(bufnr)
-	bufnr = bufnr or vim.api.nvim_get_current_buf()
-	if not vim.api.nvim_buf_is_valid(bufnr) then
-		local msg = string.format("Invalid buffer %s. Buffer may have been closed or deleted.", tostring(bufnr))
-		log.error(msg)
-		vim.notify(msg, vim.log.levels.ERROR)
-		return ""
-	end
-	
-	local diagnostics = vim.diagnostic.get(bufnr)
-	log.debug(string.format("Got %d diagnostics for buffer %d", #diagnostics, bufnr))
+    bufnr = bufnr or vim.api.nvim_get_current_buf()
+    log.debug(string.format("Getting diagnostics for buffer %d", bufnr))
+    
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+        local msg = string.format("Invalid buffer %s. Buffer may have been closed or deleted.", tostring(bufnr))
+        log.error(msg)
+        vim.notify(msg, vim.log.levels.ERROR)
+        return ""
+    end
+    
+    local diagnostics = vim.diagnostic.get(bufnr)
+    log.debug(string.format("Got %d diagnostics for buffer %d", #diagnostics, bufnr))
 	
 	if not diagnostics or #diagnostics == 0 then
 		log.debug("No diagnostics found for buffer " .. tostring(bufnr))
@@ -132,24 +134,30 @@ end
 ---Get diagnostics for all buffers
 ---@return string Formatted diagnostic output for all buffers
 function M.get_workspace_diagnostics()
-	local all_diagnostics = {}
-	local has_content = false
+    local all_diagnostics = {}
+    local has_content = false
+    log.debug("Getting workspace diagnostics")
 
-	for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-		if vim.api.nvim_buf_is_loaded(bufnr) then
-			local buf_diagnostics = M.get_buffer_diagnostics(bufnr)
-			if buf_diagnostics ~= "" then
-				table.insert(all_diagnostics, buf_diagnostics)
-				has_content = true
-			end
-		end
-	end
+    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(bufnr) then
+            log.debug(string.format("Processing buffer %d", bufnr))
+            local buf_diagnostics = M.get_buffer_diagnostics(bufnr)
+            if buf_diagnostics ~= "" then
+                table.insert(all_diagnostics, buf_diagnostics)
+                has_content = true
+                log.debug("Added diagnostics for buffer")
+            end
+        end
+    end
 
-	if not has_content then
-		return "No diagnostics found in workspace"
-	end
+    if not has_content then
+        log.debug("No diagnostics found in workspace")
+        return "No diagnostics found in workspace"
+    end
 
-	return table.concat(all_diagnostics, "\n\n")
+    local result = table.concat(all_diagnostics, "\n\n")
+    log.debug(string.format("Final diagnostic content length: %d", #result))
+    return result
 end
 
 ---Show diagnostics in a split window

@@ -1,3 +1,4 @@
+local log = require("ai-diagnostics.log")
 local M = {}
 
 -- Buffer name for the diagnostics window
@@ -119,7 +120,9 @@ function M.update_content(content)
         return
     end
 
+    log.debug(string.format("Updating content (length: %d)", #content))
     local bufnr = create_or_get_buffer()
+    log.debug(string.format("Using buffer: %d", bufnr))
     
     -- Save window view
     local win_view = nil
@@ -132,6 +135,7 @@ function M.update_content(content)
     
     -- Update content
     local lines = vim.split(content, "\n")
+    log.debug(string.format("Setting %d lines in buffer", #lines))
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
     
     -- Make buffer non-modifiable again
