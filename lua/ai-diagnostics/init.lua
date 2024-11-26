@@ -74,7 +74,7 @@ function M.setup(user_config)
 	-- Set up diagnostic change autocmd if live updates enabled
 	if M.config.live_updates then
 		vim.api.nvim_create_autocmd("DiagnosticChanged", {
-			callback = function(args)
+			callback = function(_)
 				if ui.is_open() then
 					M.show_diagnostics_window()
 				end
@@ -83,7 +83,7 @@ function M.setup(user_config)
 
 		-- Handle buffer lifecycle events
 		vim.api.nvim_create_autocmd({ "BufDelete", "BufUnload" }, {
-			callback = function(args)
+			callback = function(_)
 				if ui.is_open() then
 					M.show_diagnostics_window()
 				end
