@@ -14,13 +14,22 @@ local function merge_contexts(diagnostics, contexts)
 	for i, context_lines in ipairs(contexts) do
 		local diagnostic = diagnostics[i]
 		for _, line in ipairs(context_lines) do
-			-- Convert line number to number type if it's a string
+			-- Ensure line.number is a number
 			local line_number = tonumber(line.number)
 			if not line_number then
 				log.warn("Invalid line number found: " .. tostring(line.number))
 				goto continue
 			end
-			
+
+			-- Ensure diagnostic.range.start.line is a number
+			if diagnostic.range then
+				diagnostic.range.start.line = tonumber(diagnostic.range.start.line)
+				if not diagnostic.range.start.line then
+					log.warn("Invalid diagnostic line number")
+					goto continue
+				end
+			end
+
 			if not line_map[line_number] then
 				line_map[line_number] = {
 					content = line.content,
@@ -28,13 +37,22 @@ local function merge_contexts(diagnostics, contexts)
 					is_context = true,
 				}
 			end
-			
-			-- Check if this is the actual diagnostic line from the LSP
-			-- Use the diagnostic's range information instead of line.is_diagnostic
+
 			if diagnostic.range and line_number == diagnostic.range.start.line + 1 then
+				-- Ensure all numeric fields in diagnostic are numbers
+				if diagnostic.range.start.character then
+					diagnostic.range.start.character = tonumber(diagnostic.range.start.character)
+				end
+				if diagnostic.range['end'] and diagnostic.range['end'].line then
+					diagnostic.range['end'].line = tonumber(diagnostic.range['end'].line)
+				end
+				if diagnostic.range['end'] and diagnostic.range['end'].character then
+					diagnostic.range['end'].character = tonumber(diagnostic.range['end'].character)
+				end
+
 				table.insert(line_map[line_number].diagnostics, diagnostic)
 			end
-			
+
 			::continue::
 		end
 	end
