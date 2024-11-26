@@ -15,23 +15,25 @@ M.state = {
 ---@return number Buffer number
 local function create_or_get_buffer()
     -- Check for existing buffer
-    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-        if vim.api.nvim_buf_get_name(bufnr):match(BUFFER_NAME) then
-            return bufnr
+    local bufnr
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_get_name(buf):match(BUFFER_NAME) then
+            bufnr = buf
+            break
         end
     end
     
-    -- Create new buffer with name
-    local bufnr = vim.api.nvim_create_buf(false, true)
-    
-    -- Try to set buffer name, ignore errors if it already exists
-    pcall(vim.api.nvim_buf_set_name, bufnr, BUFFER_NAME)
+    if not bufnr then
+        -- Create new buffer
+        bufnr = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_name(bufnr, BUFFER_NAME)
+    end
     
     -- Set buffer options
     vim.api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
     vim.api.nvim_buf_set_option(bufnr, 'bufhidden', 'hide')
     vim.api.nvim_buf_set_option(bufnr, 'swapfile', false)
-    vim.api.nvim_buf_set_option(bufnr, 'modifiable', false)
+    vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)  -- Start as modifiable
     
     -- Add keymapping to quit window
     vim.api.nvim_buf_set_keymap(bufnr, 'n', 'q', ':lua require("ai-diagnostics.ui").close_window()<CR>', {
@@ -120,31 +122,37 @@ function M.update_content(content)
         return
     end
 
-    log.debug(string.format("Updating content (length: %d)", #content))
-    log.debug("Content preview: " .. string.sub(content, 1, 100))
-    
-    if #content == 0 then
-        log.warn("Attempting to update with empty content")
-    end
-    
-    
+    -- Get or create buffer
     local bufnr = create_or_get_buffer()
-    log.debug(string.format("Using buffer: %d", bufnr))
     
-    -- Add buffer state logging
-    log.debug(string.format("Buffer modifiable before: %s", 
-        vim.api.nvim_buf_get_option(bufnr, 'modifiable')))
+    -- Ensure buffer exists
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+        log.error("Invalid buffer")
+        return
+    end
     
     -- Make buffer modifiable
     vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)
     
-    -- Update content
-    local lines = vim.split(content, "\n")
-    log.debug(string.format("Setting %d lines in buffer", #lines))
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+    -- Clear existing content
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+    
+    -- Split content into lines and update buffer
+    local lines = vim.split(content, "\n", { plain = true })
+    if #lines > 0 then
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+    else
+        -- If no content, show a message
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {"No diagnostics found"})
+    end
     
     -- Make buffer non-modifiable again
     vim.api.nvim_buf_set_option(bufnr, 'modifiable', false)
+    
+    -- Ensure window exists and shows the buffer
+    if M.state.win_id and vim.api.nvim_win_is_valid(M.state.win_id) then
+        vim.api.nvim_win_set_buf(M.state.win_id, bufnr)
+    end
 end
 
 return M
