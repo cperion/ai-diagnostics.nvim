@@ -41,3 +41,7 @@ luac.out
 
 .aider*
 .env
+
+# Log files
+*.log
+logs/

@@ -62,6 +62,12 @@ function M.setup(opts)
         config.level = opts.level or config.level
         config.file = opts.file or config.file
         config.max_size = opts.max_size or config.max_size
+        
+        -- Create logs directory if it doesn't exist
+        local log_dir = vim.fn.fnamemodify(config.file, ":h")
+        if vim.fn.isdirectory(log_dir) == 0 then
+            vim.fn.mkdir(log_dir, "p")
+        end
     end
 end
 
