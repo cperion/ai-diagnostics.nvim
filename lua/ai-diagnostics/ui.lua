@@ -42,10 +42,10 @@ local BUFFER_NAME = "AI-Diagnostics"
 
 -- Store window state
 M.state = {
-	win_id = nil,
-	buf_id = nil,  -- Add buffer tracking
-	position = nil,
-	is_open = false,
+    win_id = nil,
+    buf_id = nil,
+    position = nil,
+    is_open = false
 }
 
 -- Helper function to check if buffer is in use
@@ -81,27 +81,38 @@ M.state = {
 ---Create or get the diagnostics buffer
 ---@return number Buffer number
 local function create_or_get_buffer()
-    -- First check if we have a valid buffer in state
+    -- First check if we have a valid buffer already
     if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
-        log.debug("Reusing existing buffer: " .. M.state.buf_id)
-        return M.state.buf_id
+        -- Check if buffer name matches what we expect
+        local buf_name = vim.api.nvim_buf_get_name(M.state.buf_id)
+        if buf_name:match(BUFFER_NAME .. "$") then
+            log.debug("Reusing existing buffer: " .. M.state.buf_id)
+            return M.state.buf_id
+        end
     end
 
-    -- Create a new buffer
+    -- Look for existing buffer with our name
+    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+        local buf_name = vim.api.nvim_buf_get_name(bufnr)
+        if buf_name:match(BUFFER_NAME .. "$") and vim.api.nvim_buf_is_valid(bufnr) then
+            M.state.buf_id = bufnr
+            log.debug("Found existing buffer: " .. bufnr)
+            return bufnr
+        end
+    end
+
+    -- Create new buffer only if none exists
     local bufnr = vim.api.nvim_create_buf(false, true)
     log.debug("Created new buffer: " .. bufnr)
 
     -- Set buffer options
-    vim.bo[bufnr].buftype = "nofile"
-    vim.bo[bufnr].bufhidden = "hide"  -- Changed from "wipe" to "hide"
-    vim.bo[bufnr].swapfile = false
-    vim.bo[bufnr].modifiable = true
+    vim.api.nvim_buf_set_name(bufnr, BUFFER_NAME)
+    vim.api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
+    vim.api.nvim_buf_set_option(bufnr, 'bufhidden', 'hide')
+    vim.api.nvim_buf_set_option(bufnr, 'swapfile', false)
+    vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)
 
-    -- Set buffer name
-    local name = BUFFER_NAME
-    pcall(vim.api.nvim_buf_set_name, bufnr, name)
-
-    -- Store buffer ID in state
+    -- Store in state
     M.state.buf_id = bufnr
     return bufnr
 end
@@ -110,37 +121,30 @@ end
 ---@param position string|nil "bottom" or "right" (defaults to last position or "bottom")
 function M.open_window(position)
     position = position or M.state.position or "bottom"
-
+    
     if position ~= "bottom" and position ~= "right" then
         vim.notify("Invalid position. Use 'bottom' or 'right'", vim.log.levels.ERROR)
         return
     end
 
-    -- Close existing window if it's in a different position
+    -- Get or create buffer first
+    local bufnr = create_or_get_buffer()
+
+    -- If window exists but position changed, close it
     if M.state.is_open and M.state.position ~= position then
         M.close_window()
     end
 
-    -- Get or create buffer
-    local bufnr = create_or_get_buffer()
-    log.debug("Using buffer " .. bufnr .. " for window")
-
-    -- Create split window if not already open
+    -- Create window if needed
     if not M.state.is_open then
-        if position == "bottom" then
-            vim.cmd('botright new')
-        else
-            vim.cmd('vertical botright new')
-        end
-
-        -- Get the newly created window ID
+        local cmd = position == "bottom" and "botright new" or "vertical botright new"
+        vim.cmd(cmd)
+        
         local win_id = vim.api.nvim_get_current_win()
         M.state.win_id = win_id
-
-        -- Set buffer for the window
-        vim.api.nvim_win_set_buf(win_id, bufnr)
-
+        
         -- Set window options
+        vim.api.nvim_win_set_buf(win_id, bufnr)
         vim.wo[win_id].number = false
         vim.wo[win_id].relativenumber = false
         vim.wo[win_id].wrap = false
@@ -153,11 +157,10 @@ function M.open_window(position)
         else
             vim.api.nvim_win_set_width(win_id, math.floor(vim.o.columns * 0.3))
         end
-    end
 
-    -- Update state
-    M.state.is_open = true
-    M.state.position = position
+        M.state.is_open = true
+        M.state.position = position
+    end
 end
 
 ---Close the diagnostics window if it exists
