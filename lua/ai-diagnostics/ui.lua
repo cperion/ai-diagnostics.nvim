@@ -12,16 +12,14 @@ M.state = {
     is_open = false
 }
 
--- Setup function to register cleanup autocmd
 function M.setup()
     -- Create augroup for cleanup
     local augroup = vim.api.nvim_create_augroup('AIDiagnosticsCleanup', { clear = true })
     
-    -- Register VimLeavePre autocmd with pcall for safety
-    pcall(vim.api.nvim_create_autocmd, 'VimLeavePre', {
+    -- Register VimLeavePre autocmd
+    vim.api.nvim_create_autocmd('VimLeavePre', {
         group = augroup,
         callback = function()
-            -- Safely cleanup without depending on state
             if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
                 pcall(vim.api.nvim_buf_delete, M.state.buf_id, { force = true })
             end
@@ -32,7 +30,6 @@ function M.setup()
                 is_open = false
             }
         end,
-        desc = 'Cleanup AI Diagnostics buffers and windows'
     })
 
     -- Create new buffer if none exists
@@ -114,10 +111,11 @@ local function create_or_get_buffer()
     
     -- Set buffer options
     vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(buf, 'bufhidden', 'hide')
+    vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
     vim.api.nvim_buf_set_option(buf, 'swapfile', false)
     vim.api.nvim_buf_set_option(buf, 'buflisted', false)
     vim.api.nvim_buf_set_option(buf, 'modifiable', true)
+    vim.api.nvim_buf_set_option(buf, 'filetype', 'ai-diagnostics')
 
     -- Set buffer name
     vim.api.nvim_buf_set_name(buf, BUFFER_NAME)
@@ -208,30 +206,22 @@ function M.close_window()
         log.debug(string.format("Closing window: %s", tostring(M.state.win_id)))
         -- Close window
         vim.api.nvim_win_close(M.state.win_id, true)
-    else
-        log.debug("No valid window to close")
     end
 
     -- Clean up the buffer if it exists and is valid
     if buf_id and vim.api.nvim_buf_is_valid(buf_id) then
         log.debug(string.format("Cleaning up buffer: %s", tostring(buf_id)))
+        -- Force delete the buffer
         pcall(vim.api.nvim_buf_delete, buf_id, { force = true })
     end
 
     -- Reset all state
-    local old_win_id = M.state.win_id
     M.state = {
         win_id = nil,
         buf_id = nil,
         position = nil,
         is_open = false
     }
-
-    log.debug(string.format("Window closed - Final state: is_open=%s, win_id=%s, buf_id=%s, old_win_id=%s", 
-        tostring(M.state.is_open), 
-        tostring(M.state.win_id), 
-        tostring(M.state.buf_id),
-        tostring(old_win_id)))
 end
 
 ---Toggle the diagnostics window
