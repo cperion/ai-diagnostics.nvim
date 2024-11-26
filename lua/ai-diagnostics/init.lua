@@ -47,6 +47,9 @@ function M.setup(user_config)
 
 	M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
 
+	-- Setup UI cleanup handlers
+	ui.setup()
+
 	-- Setup logging
 	-- Force debug logging during troubleshooting
 	M.config.log.level = "DEBUG"

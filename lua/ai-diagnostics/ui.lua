@@ -1,6 +1,35 @@
 local log = require("ai-diagnostics.log")
 local M = {}
 
+-- Helper function for cleanup during shutdown
+local function cleanup()
+    -- Safely delete our buffer if it exists
+    if M.state.buf_id and vim.api.nvim_buf_is_valid(M.state.buf_id) then
+        pcall(vim.api.nvim_buf_delete, M.state.buf_id, { force = true })
+    end
+    
+    -- Clear state
+    M.state = {
+        win_id = nil,
+        buf_id = nil,
+        position = nil,
+        is_open = false,
+    }
+end
+
+-- Setup function to register cleanup autocmd
+function M.setup()
+    -- Create augroup for cleanup
+    local augroup = vim.api.nvim_create_augroup('AIDiagnosticsCleanup', { clear = true })
+    
+    -- Register VimLeavePre autocmd
+    vim.api.nvim_create_autocmd('VimLeavePre', {
+        group = augroup,
+        callback = cleanup,
+        desc = 'Cleanup AI Diagnostics buffers and windows'
+    })
+end
+
 -- Helper function to defer and safely execute a function
 local function defer_fn(fn)
 	vim.schedule(function()
