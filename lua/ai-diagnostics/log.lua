@@ -76,16 +76,19 @@ function M.setup(opts)
             -- Create full directory path
             local log_dir = vim.fn.fnamemodify(config.file, ":h")
             
-            -- Use os.execute to create directories
-            local ok = os.execute(string.format("mkdir -p '%s'", log_dir))
-            
-            if ok ~= 0 and ok ~= true then  -- Check both possible success values
-                error(string.format("Failed to create directory using mkdir -p: %s", log_dir))
+            -- Check if there's a file blocking directory creation
+            local stat = vim.loop.fs_stat(log_dir)
+            if stat and stat.type == "file" then
+                error(string.format("Cannot create log directory: '%s' exists and is a file", log_dir))
             end
             
+            -- Try to create directory
+            local ok, err = pcall(function()
+                vim.fn.mkdir(log_dir, "p")
+            end)
+            
             if not ok then
-                vim.notify("Failed to create log directory: " .. tostring(err), vim.log.levels.ERROR)
-                -- Disable logging if we can't create the directory
+                vim.notify(string.format("Failed to create log directory '%s': %s", log_dir, tostring(err)), vim.log.levels.ERROR)
                 config.file = nil
                 return
             end

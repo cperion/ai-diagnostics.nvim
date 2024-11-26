@@ -59,23 +59,32 @@ function M.setup(user_config)
 		-- Create full directory path
 		local log_dir = vim.fn.fnamemodify(M.config.log.file, ":h")
 		
-		-- Ensure directory exists
-		local log_dir = vim.fn.fnamemodify(M.config.log.file, ":h")
+		-- Check if there's a file blocking directory creation
+		local stat = vim.loop.fs_stat(log_dir)
+		if stat and stat.type == "file" then
+			vim.notify(string.format("Cannot create log directory: '%s' exists and is a file", log_dir), vim.log.levels.ERROR)
+			M.config.log.enabled = false
+			return
+		end
 		
-		-- Use os.execute to create directories
-		local mkdir_ok = os.execute(string.format("mkdir -p '%s'", log_dir))
+		-- Try to create directory
+		local mkdir_ok, mkdir_err = pcall(function()
+			vim.fn.mkdir(log_dir, "p")
+		end)
 		
-		if mkdir_ok ~= 0 and mkdir_ok ~= true then  -- Check both possible success values
-			vim.notify(string.format("Failed to create log directory '%s' using mkdir -p", log_dir), vim.log.levels.WARN)
+		if not mkdir_ok then
+			vim.notify(string.format("Failed to create log directory '%s': %s", log_dir, tostring(mkdir_err)), vim.log.levels.WARN)
+			M.config.log.enabled = false
+			return
+		end
+		
+		-- Try to create/clear the log file
+		local file, err = io.open(M.config.log.file, "w")
+		if not file then
+			vim.notify(string.format("Failed to create log file '%s': %s", M.config.log.file, tostring(err)), vim.log.levels.WARN)
 			M.config.log.enabled = false
 		else
-			-- Try to create/clear the log file
-			local file, err = io.open(M.config.log.file, "w")
-			if not file then
-				vim.notify(string.format("Failed to create log file '%s': %s", M.config.log.file, tostring(err)), vim.log.levels.WARN)
-				M.config.log.enabled = false
-			else
-				file:close()
+			file:close()
 				
 				-- Initialize logging
 				local ok, setup_err = pcall(function()
