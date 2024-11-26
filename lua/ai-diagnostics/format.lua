@@ -33,24 +33,22 @@ local function merge_contexts(diagnostics, contexts)
 			end
 
 			if diagnostic.range then
-				local start_line = to_number(diagnostic.range.start.line)
-				if not start_line then
-					log.warn("Invalid diagnostic start line")
-					goto continue
-				end
-				diagnostic.range.start.line = start_line
-				
-				-- Convert other range values
-				if diagnostic.range.start.character then
+				-- Ensure all range values are numbers
+				if type(diagnostic.range.start) == "table" then
+					diagnostic.range.start.line = to_number(diagnostic.range.start.line) or 0
 					diagnostic.range.start.character = to_number(diagnostic.range.start.character) or 0
+				else
+					diagnostic.range.start = { line = 0, character = 0 }
 				end
-				if diagnostic.range['end'] then
-					if diagnostic.range['end'].line then
-						diagnostic.range['end'].line = to_number(diagnostic.range['end'].line) or start_line
-					end
-					if diagnostic.range['end'].character then
-						diagnostic.range['end'].character = to_number(diagnostic.range['end'].character) or 0
-					end
+				
+				if type(diagnostic.range['end']) == "table" then
+					diagnostic.range['end'].line = to_number(diagnostic.range['end'].line) or diagnostic.range.start.line
+					diagnostic.range['end'].character = to_number(diagnostic.range['end'].character) or 0
+				else
+					diagnostic.range['end'] = {
+						line = diagnostic.range.start.line,
+						character = 0
+					}
 				end
 			end
 
@@ -132,6 +130,7 @@ end
 ---@throws "Mismatched array lengths" when input arrays have different lengths
 function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 	log.debug(string.format("Formatting %d diagnostics", #diagnostics))
+	log.debug("Diagnostic data: " .. vim.inspect(diagnostics))
 
 	if #diagnostics == 0 then
 		log.debug("No diagnostics to format")
