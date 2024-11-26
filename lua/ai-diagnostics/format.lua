@@ -64,7 +64,10 @@ end
 ---@param diagnostic table The diagnostic to format
 ---@return string Formatted diagnostic message
 local function format_inline_diagnostic(diagnostic)
-	return string.format("[%s: %s]", utils.severity_to_string(diagnostic.severity), diagnostic.message)
+	return string.format("[%s: %s]", 
+		utils.severity_to_string(diagnostic.severity), 
+		diagnostic.message:gsub("^%s+", ""):gsub("%s+$", "")  -- Trim whitespace
+	)
 end
 
 ---Format diagnostics with merged context, grouped by file
@@ -117,7 +120,7 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 							table.insert(diag_messages, diag_line)
 						end
 					end
-					line_content = line_content .. " " .. table.concat(diag_messages, "\n")
+					line_content = line_content .. "  " .. table.concat(diag_messages, "  ")  -- Use two spaces between diagnostics
 				end
 
 				local show_line_numbers = require("ai-diagnostics").config.show_line_numbers
