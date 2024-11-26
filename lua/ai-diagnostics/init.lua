@@ -85,23 +85,22 @@ function M.setup(user_config)
 			M.config.log.enabled = false
 		else
 			file:close()
-				
-				-- Initialize logging
-				local ok, setup_err = pcall(function()
-					log.setup({
-						level = log.levels[M.config.log.level] or log.levels.INFO,
-						file = M.config.log.file,
-						max_size = M.config.log.max_size
-					})
-				end)
-				
-				if not ok then
-					vim.notify("Failed to initialize logging: " .. tostring(setup_err), vim.log.levels.WARN)
-					M.config.log.enabled = false
-				else
-					log.info("AI Diagnostics plugin initialized")
-					log.debug(string.format("Log file location: %s", M.config.log.file))
-				end
+			
+			-- Initialize logging
+			local ok, setup_err = pcall(function()
+				log.setup({
+					level = log.levels[M.config.log.level] or log.levels.INFO,
+					file = M.config.log.file,
+					max_size = M.config.log.max_size
+				})
+			end)
+			
+			if not ok then
+				vim.notify("Failed to initialize logging: " .. tostring(setup_err), vim.log.levels.WARN)
+				M.config.log.enabled = false
+			else
+				log.info("AI Diagnostics plugin initialized")
+				log.debug(string.format("Log file location: %s", M.config.log.file))
 			end
 		end
 	end
