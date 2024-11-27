@@ -14,6 +14,13 @@ local M = {
 	config = {},
 }
 
+-- Function to filter diagnostics based on severity
+local function filter_diagnostics_by_severity(diagnostics, min_severity)
+    return vim.tbl_filter(function(diag)
+        return diag.severity >= min_severity
+    end, diagnostics)
+end
+
 ---Validate configuration table
 ---@param cfg table Configuration to validate
 ---@return boolean valid
@@ -148,7 +155,8 @@ function M.get_buffer_diagnostics(bufnr)
 	end
 
 	local diagnostics = vim.diagnostic.get(bufnr)
-	log.debug(string.format("Raw diagnostics count: %d", #diagnostics))
+	diagnostics = filter_diagnostics_by_severity(diagnostics, M.config.min_diagnostic_severity)
+	log.debug(string.format("Filtered diagnostics count: %d", #diagnostics))
 
 	-- Log each diagnostic for debugging
 	for i, diag in ipairs(diagnostics) do
@@ -229,6 +237,7 @@ function M.get_workspace_diagnostics()
 	for _, bufnr in ipairs(valid_buffers) do
 		log.debug(string.format("Processing buffer %d", bufnr))
 		local buf_diagnostics = M.get_buffer_diagnostics(bufnr)
+		buf_diagnostics = filter_diagnostics_by_severity(buf_diagnostics, M.config.min_diagnostic_severity)
 		if buf_diagnostics ~= "" then
 			table.insert(all_diagnostics, buf_diagnostics)
 			has_content = true
