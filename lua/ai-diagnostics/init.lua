@@ -16,9 +16,9 @@ local M = {
 
 -- Function to filter diagnostics based on severity
 local function filter_diagnostics_by_severity(diagnostics, min_severity)
-    return vim.tbl_filter(function(diag)
-        return diag.severity >= min_severity
-    end, diagnostics)
+	return vim.tbl_filter(function(diag)
+		return diag.severity >= min_severity
+	end, diagnostics)
 end
 
 ---Validate configuration table
