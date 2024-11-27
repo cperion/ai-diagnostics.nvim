@@ -132,7 +132,7 @@ local function format_inline_diagnostic(diagnostic)
 	return string.format(
 		"[%s: %s]",
 		utils.severity_to_string(diagnostic.severity),
-		diagnostic.message:gsub("^%s+", ""):gsub("%s+$", "") -- Trim whitespace
+		diagnostic.message:gsub("^%s+", ""):gsub("%s+$", ""):gsub("[\n\r]+", " ") -- Trim whitespace and replace line breaks
 	)
 end
 
