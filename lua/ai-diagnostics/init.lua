@@ -15,9 +15,27 @@ local M = {
 }
 
 -- Function to filter diagnostics based on severity
+---Validate if a diagnostic is well-formed
+---@param diag table Diagnostic to validate
+---@return boolean
+local function is_valid_diagnostic(diag)
+	return type(diag) == "table" 
+		and type(diag.severity) == "number"
+		and type(diag.message) == "string"
+		and type(diag.lnum) == "number"
+end
+
+---Filter diagnostics by severity
+---@param diagnostics table[] List of diagnostics
+---@param min_severity number Minimum severity level
+---@return table[] Filtered diagnostics
 local function filter_diagnostics_by_severity(diagnostics, min_severity)
+	if not min_severity then return diagnostics end
 	return vim.tbl_filter(function(diag)
-		return diag.severity >= min_severity
+		if not is_valid_diagnostic(diag) then
+			return false
+		end
+		return diag.severity <= min_severity
 	end, diagnostics)
 end
 
@@ -155,8 +173,7 @@ function M.get_buffer_diagnostics(bufnr)
 	end
 
 	local diagnostics = vim.diagnostic.get(bufnr)
-	-- Ensure diagnostics is a table
-	diagnostics = type(diagnostics) == "table" and diagnostics or {}
+	diagnostics = vim.tbl_filter(is_valid_diagnostic, diagnostics or {})
 	diagnostics = filter_diagnostics_by_severity(diagnostics, M.config.min_diagnostic_severity)
 	log.debug(string.format("Filtered diagnostics count: %d", #diagnostics))
 
@@ -239,9 +256,6 @@ function M.get_workspace_diagnostics()
 	for _, bufnr in ipairs(valid_buffers) do
 		log.debug(string.format("Processing buffer %d", bufnr))
 		local buf_diagnostics = M.get_buffer_diagnostics(bufnr)
-		-- Ensure buf_diagnostics is a table
-		buf_diagnostics = type(buf_diagnostics) == "table" and buf_diagnostics or {}
-		buf_diagnostics = filter_diagnostics_by_severity(buf_diagnostics, M.config.min_diagnostic_severity)
 		if buf_diagnostics ~= "" then
 			table.insert(all_diagnostics, buf_diagnostics)
 			has_content = true
