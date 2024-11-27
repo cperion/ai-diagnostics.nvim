@@ -37,85 +37,85 @@ end
 ---Setup the plugin with user configuration
 ---@param user_config table|nil Optional configuration table with before_lines and after_lines
 function M.setup(user_config)
-    -- Wrap config initialization in pcall
-    local status, err = pcall(function()
-        if user_config then
-            local valid, err = validate_config(user_config)
-            if not valid then
-                error(err)
-            end
-        end
-        M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
-    end)
+	-- Wrap config initialization in pcall
+	local status, err = pcall(function()
+		if user_config then
+			local valid, err = validate_config(user_config)
+			if not valid then
+				error(err)
+			end
+		end
+		M.config = vim.tbl_deep_extend("force", config.default_config, user_config or {})
+	end)
 
-    if not status then
-        vim.notify("AI Diagnostics config error: " .. tostring(err), vim.log.levels.ERROR)
-        return
-    end
+	if not status then
+		vim.notify("AI Diagnostics config error: " .. tostring(err), vim.log.levels.ERROR)
+		return
+	end
 
-    -- Setup UI first
-    ui.setup()
+	-- Setup UI first
+	ui.setup()
 
-    -- Setup logging with pcall
-    if M.config.log and M.config.log.enabled then
-        pcall(function()
-            if not M.config.log.file then
-                M.config.log.file = vim.fn.stdpath("cache") .. "/ai-diagnostics.log"
-            end
-            log.setup({
-                level = M.config.log.level == "DEBUG" and log.levels.DEBUG or log.levels.INFO,
-                file = M.config.log.file,
-                max_size = M.config.log.max_size,
-            })
-        end)
-    end
+	-- Setup logging with pcall
+	if M.config.log and M.config.log.enabled then
+		pcall(function()
+			if not M.config.log.file then
+				M.config.log.file = vim.fn.stdpath("cache") .. "/ai-diagnostics.log"
+			end
+			log.setup({
+				level = M.config.log.level == "DEBUG" and log.levels.DEBUG or log.levels.INFO,
+				file = M.config.log.file,
+				max_size = M.config.log.max_size,
+			})
+		end)
+	end
 
-    -- Set up diagnostic change autocmd if live updates enabled
-    if M.config.live_updates then
-        local group = vim.api.nvim_create_augroup('AIDiagnosticsUpdates', { clear = true })
-        pcall(vim.api.nvim_create_autocmd, "DiagnosticChanged", {
-            group = group,
-            callback = function()
-                if ui.is_open() then
-                    M.show_diagnostics_window()
-                end
-            end,
-        })
+	-- Set up diagnostic change autocmd if live updates enabled
+	if M.config.live_updates then
+		local group = vim.api.nvim_create_augroup("AIDiagnosticsUpdates", { clear = true })
+		pcall(vim.api.nvim_create_autocmd, "DiagnosticChanged", {
+			group = group,
+			callback = function()
+				if ui.is_open() then
+					M.show_diagnostics_window()
+				end
+			end,
+		})
 
-        pcall(vim.api.nvim_create_autocmd, { "BufDelete", "BufUnload" }, {
-            group = group,
-            callback = function()
-                if ui.is_open() then
-                    M.show_diagnostics_window()
-                end
-            end,
-        })
-    end
+		pcall(vim.api.nvim_create_autocmd, { "BufDelete", "BufUnload" }, {
+			group = group,
+			callback = function()
+				if ui.is_open() then
+					M.show_diagnostics_window()
+				end
+			end,
+		})
+	end
 
-    -- Create commands safely
-    pcall(function()
-        vim.api.nvim_create_user_command("AIDiagnosticsShow", function(opts)
-            M.show_diagnostics_window(opts.args)
-        end, {
-            nargs = "?",
-            complete = function()
-                return { "bottom", "right" }
-            end,
-        })
+	-- Create commands safely
+	pcall(function()
+		vim.api.nvim_create_user_command("AIDiagnosticsShow", function(opts)
+			M.show_diagnostics_window(opts.args)
+		end, {
+			nargs = "?",
+			complete = function()
+				return { "bottom", "right" }
+			end,
+		})
 
-        vim.api.nvim_create_user_command("AIDiagnosticsClose", function()
-            M.close_diagnostics_window()
-        end, {})
+		vim.api.nvim_create_user_command("AIDiagnosticsClose", function()
+			M.close_diagnostics_window()
+		end, {})
 
-        vim.api.nvim_create_user_command("AIDiagnosticsToggle", function(opts)
-            M.toggle_diagnostics_window(opts.args)
-        end, {
-            nargs = "?",
-            complete = function()
-                return { "bottom", "right" }
-            end,
-        })
-    end)
+		vim.api.nvim_create_user_command("AIDiagnosticsToggle", function(opts)
+			M.toggle_diagnostics_window(opts.args)
+		end, {
+			nargs = "?",
+			complete = function()
+				return { "bottom", "right" }
+			end,
+		})
+	end)
 end
 
 ---Get formatted diagnostics for a buffer
@@ -272,22 +272,22 @@ end
 M.toggle_diagnostics_window = M.toggle_window
 
 function M.close_window()
-    if M.is_open() then
-        local win_id = M.state.win_id
-        local buf_id = M.state.buf_id
-        
-        -- Fermeture de la fenêtre
-        vim.api.nvim_win_close(win_id, true)
-        
-        -- Nettoyage du buffer s'il existe et est valide
-        if buf_id and vim.api.nvim_buf_is_valid(buf_id) then
-            vim.api.nvim_buf_delete(buf_id, { force = true })
-        end
-        
-        -- Réinitialisation de l'état
-        M.state.win_id = nil
-        M.state.buf_id = nil
-    end
+	if M.is_open() then
+		local win_id = M.state.win_id
+		local buf_id = M.state.buf_id
+
+		-- Fermeture de la fenêtre
+		vim.api.nvim_win_close(win_id, true)
+
+		-- Nettoyage du buffer s'il existe et est valide
+		if buf_id and vim.api.nvim_buf_is_valid(buf_id) then
+			vim.api.nvim_buf_delete(buf_id, { force = true })
+		end
+
+		-- Réinitialisation de l'état
+		M.state.win_id = nil
+		M.state.buf_id = nil
+	end
 end
 
 return M

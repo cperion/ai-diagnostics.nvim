@@ -47,7 +47,7 @@ function M.get_diagnostic_context(bufnr, diagnostic, config)
 	-- Format lines with line numbers and markers
 	local lines = {}
 	for i, line in ipairs(buf_lines) do
-		local line_num = context_start + i
+		local line_num = context_start + i - 1
 
 		table.insert(lines, {
 			number = line_num + 1,
