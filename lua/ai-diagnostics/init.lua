@@ -155,6 +155,10 @@ function M.get_buffer_diagnostics(bufnr)
 	end
 
 	local diagnostics = vim.diagnostic.get(bufnr)
+	-- Ensure diagnostics is a table
+	if type(diagnostics) ~= "table" then
+	    diagnostics = {}
+	end
 	diagnostics = filter_diagnostics_by_severity(diagnostics, M.config.min_diagnostic_severity)
 	log.debug(string.format("Filtered diagnostics count: %d", #diagnostics))
 
@@ -237,6 +241,10 @@ function M.get_workspace_diagnostics()
 	for _, bufnr in ipairs(valid_buffers) do
 		log.debug(string.format("Processing buffer %d", bufnr))
 		local buf_diagnostics = M.get_buffer_diagnostics(bufnr)
+		-- Ensure buf_diagnostics is a table
+		if type(buf_diagnostics) ~= "table" then
+		    buf_diagnostics = {}
+		end
 		buf_diagnostics = filter_diagnostics_by_severity(buf_diagnostics, M.config.min_diagnostic_severity)
 		if buf_diagnostics ~= "" then
 			table.insert(all_diagnostics, buf_diagnostics)
