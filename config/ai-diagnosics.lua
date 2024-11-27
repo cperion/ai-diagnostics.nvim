@@ -8,8 +8,6 @@ return {
 				enabled = true,
 				level = "DEBUG", -- Set to DEBUG to see all logs while debugging
 			},
-			bufhidden = 'hide',
-			reuse_buffer = true,
 		})
 
 		-- Add keymaps
