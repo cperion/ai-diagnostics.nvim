@@ -161,6 +161,7 @@ function M.close_window()
 
 		-- Reset state
 		M.state.win_id = nil
+		M.state.layout = nil
 
 		log.debug(
 			"Window closed - Final state: is_open="
