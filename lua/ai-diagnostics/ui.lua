@@ -50,6 +50,11 @@ function M.setup()
 			end
 		end,
 	})
+	vim.keymap.set("n", "q", function()
+		if M.is_open() then
+			M.close_window()
+		end
+	end)
 
 	-- Add buffer cleanup on window close - REMOVED
 	-- vim.api.nvim_create_autocmd('WinClosed', {
