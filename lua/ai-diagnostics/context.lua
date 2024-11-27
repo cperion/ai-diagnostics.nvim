@@ -48,12 +48,10 @@ function M.get_diagnostic_context(bufnr, diagnostic, config)
 	local lines = {}
 	for i, line in ipairs(buf_lines) do
 		local line_num = context_start + i
-		local is_diagnostic_line = line_num >= start_line and line_num <= end_line
 
 		table.insert(lines, {
 			number = line_num + 1,
 			content = line,
-			is_diagnostic = is_diagnostic_line,
 		})
 	end
 
