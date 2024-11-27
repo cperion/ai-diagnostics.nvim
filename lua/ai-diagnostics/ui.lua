@@ -84,11 +84,13 @@ function M.open_window(position)
     -- Create new split
     if position == "right" then
         vim.cmd("botright vsplit")
-        local width = math.floor(vim.api.nvim_win_get_width(current_win) / 2)
+        -- Set width to exactly 50% of the editor width
+        local width = math.floor(vim.o.columns / 2)
         vim.api.nvim_win_set_width(vim.api.nvim_get_current_win(), width)
     else
         vim.cmd("botright split")
-        local height = math.floor(vim.api.nvim_win_get_height(current_win) / 2)
+        -- Set height to exactly 50% of the editor height
+        local height = math.floor(vim.o.lines / 2)
         vim.api.nvim_win_set_height(vim.api.nvim_get_current_win(), height)
     end
 
