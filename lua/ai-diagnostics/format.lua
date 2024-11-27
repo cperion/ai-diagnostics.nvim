@@ -7,17 +7,17 @@ local M = {}
 ---@param value any The value to convert
 ---@return number|nil
 local function to_number(value)
-    log.debug("Converting to number: " .. vim.inspect(value) .. " (type: " .. type(value) .. ")")
-    if type(value) == "number" then
-        log.debug("Already a number: " .. tostring(value))
-        return value
-    elseif type(value) == "string" then
-        local num = tonumber(value)
-        log.debug("Converted string to number: " .. tostring(num))
-        return num
-    end
-    log.debug("Failed to convert to number")
-    return nil
+	log.debug("Converting to number: " .. vim.inspect(value) .. " (type: " .. type(value) .. ")")
+	if type(value) == "number" then
+		log.debug("Already a number: " .. tostring(value))
+		return value
+	elseif type(value) == "string" then
+		local num = tonumber(value)
+		log.debug("Converted string to number: " .. tostring(num))
+		return num
+	end
+	log.debug("Failed to convert to number")
+	return nil
 end
 
 ---Group diagnostics by line and merge overlapping contexts
@@ -44,24 +44,33 @@ local function merge_contexts(diagnostics, contexts)
 					log.debug("Processing range.start: " .. vim.inspect(diagnostic.range.start))
 					diagnostic.range.start.line = to_number(diagnostic.range.start.line) or 0
 					diagnostic.range.start.character = to_number(diagnostic.range.start.character) or 0
-					log.debug("Converted range.start - line: " .. tostring(diagnostic.range.start.line) .. 
-						", character: " .. tostring(diagnostic.range.start.character))
+					log.debug(
+						"Converted range.start - line: "
+							.. tostring(diagnostic.range.start.line)
+							.. ", character: "
+							.. tostring(diagnostic.range.start.character)
+					)
 				else
 					log.debug("range.start is not a table, creating default")
 					diagnostic.range.start = { line = 0, character = 0 }
 				end
-				
-				if type(diagnostic.range['end']) == "table" then
-					log.debug("Processing range.end: " .. vim.inspect(diagnostic.range['end']))
-					diagnostic.range['end'].line = to_number(diagnostic.range['end'].line) or diagnostic.range.start.line
-					diagnostic.range['end'].character = to_number(diagnostic.range['end'].character) or 0
-					log.debug("Converted range.end - line: " .. tostring(diagnostic.range['end'].line) .. 
-						", character: " .. tostring(diagnostic.range['end'].character))
+
+				if type(diagnostic.range["end"]) == "table" then
+					log.debug("Processing range.end: " .. vim.inspect(diagnostic.range["end"]))
+					diagnostic.range["end"].line = to_number(diagnostic.range["end"].line)
+						or diagnostic.range.start.line
+					diagnostic.range["end"].character = to_number(diagnostic.range["end"].character) or 0
+					log.debug(
+						"Converted range.end - line: "
+							.. tostring(diagnostic.range["end"].line)
+							.. ", character: "
+							.. tostring(diagnostic.range["end"].character)
+					)
 				else
 					log.debug("range.end is not a table, creating default")
-					diagnostic.range['end'] = {
+					diagnostic.range["end"] = {
 						line = diagnostic.range.start.line,
-						character = 0
+						character = 0,
 					}
 				end
 			end
@@ -76,7 +85,7 @@ local function merge_contexts(diagnostics, contexts)
 
 			-- Check if this is the diagnostic's line (LSP uses 0-based line numbers)
 			-- We don't modify diagnostic.lnum to maintain compatibility with other plugins
-			if line_number == (diagnostic.lnum or 0) + 1 then  -- Just add 1 for display
+			if line_number == (diagnostic.lnum or 0) + 1 then -- Just add 1 for display
 				table.insert(line_map[line_number].diagnostics, diagnostic)
 			end
 
@@ -121,10 +130,11 @@ end
 ---@param diagnostic table The diagnostic to format
 ---@return string Formatted diagnostic message
 local function format_inline_diagnostic(diagnostic)
-    return string.format("[%s: %s]", 
-        utils.severity_to_string(diagnostic.severity), 
-        diagnostic.message:gsub("^%s+", ""):gsub("%s+$", "")  -- Trim whitespace
-    )
+	return string.format(
+		"[%s: %s]",
+		utils.severity_to_string(diagnostic.severity),
+		diagnostic.message:gsub("^%s+", ""):gsub("%s+$", "") -- Trim whitespace
+	)
 end
 
 ---Format diagnostics with merged context, grouped by file
@@ -169,27 +179,27 @@ function M.format_diagnostic_with_context(diagnostics, contexts, filenames)
 
 		for _, block in ipairs(merged) do
 			for _, line in ipairs(block.lines) do
-                local line_content = utils.truncate_string(line.content)
-                local formatted_line = line_content
+				local line_content = utils.truncate_string(line.content)
+				local formatted_line = line_content
 
-                -- Add diagnostics if present
-                if #line.diagnostics > 0 then
-                    local diag_messages = {}
-                    for _, diag in ipairs(line.diagnostics) do
-                        table.insert(diag_messages, format_inline_diagnostic(diag))
-                    end
-                    
-                    -- Add two spaces between code and diagnostics
-                    formatted_line = formatted_line .. "  " .. table.concat(diag_messages, "  ")
-                end
+				-- Add diagnostics if present
+				if #line.diagnostics > 0 then
+					local diag_messages = {}
+					for _, diag in ipairs(line.diagnostics) do
+						table.insert(diag_messages, format_inline_diagnostic(diag))
+					end
 
-                -- Add line numbers if configured
-                if require("ai-diagnostics").config.show_line_numbers then
-                    formatted_line = string.format("%4d: %s", line.number, formatted_line)
-                end
+					-- Add two spaces between code and diagnostics
+					formatted_line = formatted_line .. "  " .. table.concat(diag_messages, "  ")
+				end
 
-                -- Always add the line to output
-                table.insert(output, formatted_line)
+				-- Add line numbers if configured
+				if require("ai-diagnostics").config.show_line_numbers then
+					formatted_line = string.format("%4d: %s", line.number, formatted_line)
+				end
+
+				-- Always add the line to output
+				table.insert(output, formatted_line)
 			end
 			-- Add a blank line between blocks
 			table.insert(output, "")
