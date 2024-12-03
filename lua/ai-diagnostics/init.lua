@@ -18,17 +18,27 @@ local M = {
 ---@param diag any Diagnostic to validate
 ---@return boolean is_valid
 local function is_valid_diagnostic(diag)
-    if type(diag) ~= "table" then return false end
-    
-    -- Check required fields with correct types
-    if type(diag.severity) ~= "number" then return false end
-    if type(diag.message) ~= "string" then return false end
-    if type(diag.lnum) ~= "number" then return false end
-    
-    -- Validate severity range (1-4)
-    if diag.severity < 1 or diag.severity > 4 then return false end
-    
-    return true
+	if type(diag) ~= "table" then
+		return false
+	end
+
+	-- Check required fields with correct types
+	if type(diag.severity) ~= "number" then
+		return false
+	end
+	if type(diag.message) ~= "string" then
+		return false
+	end
+	if type(diag.lnum) ~= "number" then
+		return false
+	end
+
+	-- Validate severity range (1-4)
+	if diag.severity < 1 or diag.severity > 4 then
+		return false
+	end
+
+	return true
 end
 
 ---Filter diagnostics by severity and validate structure
@@ -36,21 +46,24 @@ end
 ---@param min_severity number|nil Minimum severity level (1=ERROR to 4=HINT)
 ---@return table[] filtered_diagnostics Filtered and validated diagnostics
 local function filter_diagnostics_by_severity(diagnostics, min_severity)
-    if type(diagnostics) ~= "table" then return {} end
-    
-    return vim.tbl_filter(function(diag)
-        -- First validate diagnostic structure
-        if not is_valid_diagnostic(diag) then
-            return false
-        end
-        
-        -- Then check severity if specified
-        if min_severity then
-            return diag.severity <= min_severity
-        end
-        
-        return true
-    end, diagnostics)
+	if type(diagnostics) ~= "table" then
+		return {}
+	end
+
+	return vim.tbl_filter(function(diag)
+		-- First validate diagnostic structure
+		if not is_valid_diagnostic(diag) then
+			return false
+		end
+
+		-- Then check severity if specified
+		-- Higher numbers are less severe in nvim diagnostic severity (ERROR=1, HINT=4)
+		if min_severity then
+			return diag.severity >= min_severity
+		end
+
+		return true
+	end, diagnostics)
 end
 
 ---Validate configuration table
@@ -69,6 +82,14 @@ local function validate_config(cfg)
 	end
 	if cfg.show_line_numbers ~= nil and type(cfg.show_line_numbers) ~= "boolean" then
 		return false, "show_line_numbers must be a boolean"
+	end
+	if cfg.min_diagnostic_severity ~= nil then
+		if type(cfg.min_diagnostic_severity) ~= "number" then
+			return false, "min_diagnostic_severity must be a number"
+		end
+		if cfg.min_diagnostic_severity < 1 or cfg.min_diagnostic_severity > 4 then
+			return false, "min_diagnostic_severity must be between 1 (ERROR) and 4 (HINT)"
+		end
 	end
 	return true
 end
@@ -186,31 +207,32 @@ function M.get_buffer_diagnostics(bufnr)
 		return ""
 	end
 
-    local raw_diagnostics = vim.diagnostic.get(bufnr)
-    if not raw_diagnostics then
-        log.debug("No raw diagnostics found for buffer")
-        return ""
-    end
+	local diagnostics = vim.diagnostic.get(bufnr, { severity = M.config.severity })
+	if not diagnostics then
+		log.debug("No raw diagnostics found for buffer")
+		return ""
+	end
 
-    -- Filter and validate diagnostics
-    local diagnostics = filter_diagnostics_by_severity(raw_diagnostics, M.config.min_diagnostic_severity)
-    log.debug(string.format("Filtered diagnostics count: %d", #diagnostics))
+	-- Filter and validate diagnostics
+	log.debug(string.format("Filtered diagnostics count: %d", #diagnostics))
 
-    -- Enhanced diagnostic logging
-    for i, diag in ipairs(diagnostics) do
-        local severity_name = vim.diagnostic.severity[diag.severity] or "UNKNOWN"
-        local line_num = diag.lnum + 1  -- Convert to 1-based line numbers
-        
-        log.debug(string.format(
-            "Diagnostic[%d]: severity=%s(%d), line=%d, col=%d, message='%s'",
-            i,
-            severity_name,
-            diag.severity,
-            line_num,
-            diag.col or 0,
-            diag.message or ""
-        ))
-    end
+	-- Enhanced diagnostic logging
+	for i, diag in ipairs(diagnostics) do
+		local severity_name = vim.diagnostic.severity[diag.severity] or "UNKNOWN"
+		local line_num = diag.lnum + 1 -- Convert to 1-based line numbers
+
+		log.debug(
+			string.format(
+				"Diagnostic[%d]: severity=%s(%d), line=%d, col=%d, message='%s'",
+				i,
+				severity_name,
+				diag.severity,
+				line_num,
+				diag.col or 0,
+				diag.message or ""
+			)
+		)
+	end
 
 	if not diagnostics or #diagnostics == 0 then
 		log.debug("No diagnostics found for buffer " .. tostring(bufnr))
@@ -233,25 +255,27 @@ end
 ---Get diagnostics for all valid buffers in the workspace
 ---@return string Formatted diagnostic output for all buffers
 function M.get_workspace_diagnostics()
-    local all_diagnostics = {}
-    log.debug("Getting workspace diagnostics")
+	local all_diagnostics = {}
+	log.debug("Getting workspace diagnostics")
 
-    -- Get list of valid buffers with files
-    local valid_buffers = vim.tbl_filter(function(bufnr)
-        local is_valid = vim.api.nvim_buf_is_valid(bufnr)
-        local is_loaded = vim.api.nvim_buf_is_loaded(bufnr)
-        local has_name = vim.api.nvim_buf_get_name(bufnr) ~= ""
-        
-        log.debug(string.format(
-            "Buffer %d: valid=%s, loaded=%s, has_name=%s",
-            bufnr,
-            tostring(is_valid),
-            tostring(is_loaded),
-            tostring(has_name)
-        ))
-        
-        return is_valid and is_loaded and has_name
-    end, vim.api.nvim_list_bufs())
+	-- Get list of valid buffers with files
+	local valid_buffers = vim.tbl_filter(function(bufnr)
+		local is_valid = vim.api.nvim_buf_is_valid(bufnr)
+		local is_loaded = vim.api.nvim_buf_is_loaded(bufnr)
+		local has_name = vim.api.nvim_buf_get_name(bufnr) ~= ""
+
+		log.debug(
+			string.format(
+				"Buffer %d: valid=%s, loaded=%s, has_name=%s",
+				bufnr,
+				tostring(is_valid),
+				tostring(is_loaded),
+				tostring(has_name)
+			)
+		)
+
+		return is_valid and is_loaded and has_name
+	end, vim.api.nvim_list_bufs())
 
 	-- Log number of valid buffers found
 	log.debug(string.format("Found %d valid buffers", #valid_buffers))

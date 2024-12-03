@@ -6,7 +6,8 @@ M.default_config = {
 	after_lines = 2,
 	-- Maximum length for truncated lines
 	max_line_length = 120,
-	min_diagnostic_severity = vim.diagnostic.severity.HINT,
+	-- Minimum severity level to include (1=ERROR, 2=WARN, 3=INFO, 4=HINT)
+	severity = vim.diagnostic.severity.HINT, -- Show all severities by default
 	-- Enable live updates of diagnostics window
 	live_updates = true,
 	-- Format strings
