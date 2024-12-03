@@ -6,8 +6,9 @@ return {
 		require("ai-diagnostics").setup({
 			log = {
 				enabled = true,
-				level = "DEBUG", -- Set to DEBUG to see all logs while debugging
+				level = vim.log.levels.WARN, -- Set to DEBUG to see all logs while debugging
 			},
+			severity = vim.diagnostic.severity.ERROR,
 		})
 
 		-- Add keymaps
