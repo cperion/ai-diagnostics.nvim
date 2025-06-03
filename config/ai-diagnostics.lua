@@ -6,9 +6,15 @@ return {
 		require("ai-diagnostics").setup({
 			log = {
 				enabled = true,
-				level = vim.log.levels.WARN, -- Set to DEBUG to see all logs while debugging
+				level = "WARN", -- String values: "DEBUG", "INFO", "WARN", "ERROR"
 			},
 			severity = vim.diagnostic.severity.ERROR,
+			-- Optional: Add other config options
+			before_lines = 2,
+			after_lines = 2,
+			max_line_length = 120,
+			show_line_numbers = false,
+			live_updates = true,
 		})
 
 		-- Add keymaps
