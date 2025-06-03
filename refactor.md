@@ -115,3 +115,255 @@
 ### Issue: Unclear data flow
 - The relationship between diagnostics, contexts, and filenames arrays is implicit
 - Relies on array indices matching, which is fragile
+
+## Proposed Refactoring Approach
+
+### 1. Architecture Overview
+
+The current architecture has unclear boundaries and responsibilities. Here's a proposed cleaner architecture:
+
+```mermaid
+graph TD
+    subgraph "Public API"
+        A[init.lua]
+    end
+    
+    subgraph "Core Domain"
+        B[diagnostic_service.lua]
+        C[diagnostic.lua]
+    end
+    
+    subgraph "Infrastructure"
+        D[ui/window.lua]
+        E[ui/buffer.lua]
+        F[formatting/formatter.lua]
+        G[logging/logger.lua]
+    end
+    
+    subgraph "Utilities"
+        H[utils.lua]
+        I[config.lua]
+    end
+    
+    A --> B
+    B --> C
+    B --> F
+    A --> D
+    D --> E
+    B --> G
+    F --> H
+    B --> I
+```
+
+### 2. Core Design Principles
+
+#### Single Responsibility
+- Each module should have one clear purpose
+- Separate concerns: data collection, formatting, display, logging
+
+#### Dependency Inversion
+- Core business logic should not depend on infrastructure
+- Use interfaces/protocols where appropriate
+
+#### Immutable Data Structures
+- Pass data, not indices
+- Use structured objects instead of parallel arrays
+
+### 3. Proposed Module Structure
+
+```mermaid
+graph LR
+    subgraph "Data Model"
+        A[Diagnostic]
+        B[DiagnosticContext]
+        C[FileDiagnostics]
+    end
+    
+    subgraph "Services"
+        D[DiagnosticService]
+        E[FormatterService]
+        F[WindowService]
+    end
+    
+    subgraph "Infrastructure"
+        G[Logger]
+        H[Config]
+    end
+    
+    A --> B
+    C --> A
+    D --> C
+    D --> E
+    D --> F
+    E --> A
+    F --> G
+    D --> H
+```
+
+### 4. Key Refactoring Steps
+
+#### Step 1: Create Data Models
+Replace parallel arrays with proper data structures:
+
+```lua
+-- diagnostic.lua
+local Diagnostic = {}
+Diagnostic.__index = Diagnostic
+
+function Diagnostic:new(vim_diagnostic, context)
+    return setmetatable({
+        severity = vim_diagnostic.severity,
+        message = vim_diagnostic.message,
+        line = vim_diagnostic.lnum,
+        end_line = vim_diagnostic.end_lnum,
+        context = context,
+        source = vim_diagnostic.source
+    }, self)
+end
+
+-- file_diagnostics.lua
+local FileDiagnostics = {}
+FileDiagnostics.__index = FileDiagnostics
+
+function FileDiagnostics:new(filename, diagnostics)
+    return setmetatable({
+        filename = filename,
+        diagnostics = diagnostics or {}
+    }, self)
+end
+```
+
+#### Step 2: Simplify Logging
+Replace complex async logging with simple, synchronous logging:
+
+```lua
+-- logging/logger.lua
+local Logger = {}
+Logger.__index = Logger
+
+function Logger:new(config)
+    return setmetatable({
+        level = config.level,
+        file = config.file
+    }, self)
+end
+
+function Logger:log(level, message)
+    if level < self.level then return end
+    -- Simple, direct file write
+end
+```
+
+#### Step 3: Clean State Management
+Replace module-level state with instance-based state:
+
+```lua
+-- ui/window.lua
+local Window = {}
+Window.__index = Window
+
+function Window:new()
+    return setmetatable({
+        buffer = nil,
+        window = nil
+    }, self)
+end
+
+function Window:open(position)
+    -- Instance methods, not module functions
+end
+```
+
+#### Step 4: Consistent Error Handling
+Use a Result type pattern:
+
+```lua
+-- utils/result.lua
+local Result = {}
+Result.__index = Result
+
+function Result:ok(value)
+    return setmetatable({
+        is_ok = true,
+        value = value
+    }, self)
+end
+
+function Result:err(error)
+    return setmetatable({
+        is_ok = false,
+        error = error
+    }, self)
+end
+```
+
+### 5. Migration Strategy
+
+```mermaid
+graph TD
+    A[Current State] --> B[Add Data Models]
+    B --> C[Refactor Services]
+    C --> D[Update UI Layer]
+    D --> E[Simplify Infrastructure]
+    E --> F[Clean Public API]
+    F --> G[Add Tests]
+    G --> H[Final State]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style H fill:#9f9,stroke:#333,stroke-width:2px
+```
+
+#### Phase 1: Data Layer (Non-breaking)
+1. Create new data model files
+2. Add conversion functions from old format
+3. Gradually migrate internal functions
+
+#### Phase 2: Service Layer (Minimal breaking)
+1. Create service objects
+2. Move logic from scattered modules
+3. Keep backwards-compatible API
+
+#### Phase 3: Infrastructure (Some breaking)
+1. Replace complex logging
+2. Refactor UI to use instances
+3. Update configuration handling
+
+#### Phase 4: Public API (Breaking changes)
+1. Simplify init.lua to facade pattern
+2. Remove duplicate/dead code
+3. Clear deprecation notices
+
+### 6. Benefits of This Approach
+
+1. **Testability**: Each component can be tested in isolation
+2. **Maintainability**: Clear boundaries and responsibilities
+3. **Performance**: Remove redundant operations and checks
+4. **Reliability**: Consistent error handling and state management
+5. **Extensibility**: Easy to add new features without breaking existing code
+
+### 7. Example of Refactored Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API as init.lua
+    participant DS as DiagnosticService
+    participant FS as FormatterService
+    participant WS as WindowService
+    
+    User->>API: show_diagnostics()
+    API->>DS: get_all_diagnostics()
+    DS->>DS: collect_from_buffers()
+    DS->>FS: format(diagnostics)
+    FS->>FS: group_by_file()
+    FS->>FS: add_context()
+    FS-->>DS: formatted_output
+    DS-->>API: Result<output>
+    API->>WS: display(output)
+    WS->>WS: ensure_window()
+    WS->>WS: update_buffer()
+    WS-->>API: Result<success>
+    API-->>User: window opened
+```
+
+This approach provides a clear path from the current state to a more maintainable, testable, and performant codebase while allowing for gradual migration.
