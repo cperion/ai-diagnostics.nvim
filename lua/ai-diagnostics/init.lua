@@ -280,23 +280,5 @@ end
 -- Alias for backward compatibility
 M.toggle_diagnostics_window = M.toggle_window
 
-function M.close_window()
-	if M.is_open() then
-		local win_id = M.state.win_id
-		local buf_id = M.state.buf_id
-
-		-- Fermeture de la fenêtre
-		vim.api.nvim_win_close(win_id, true)
-
-		-- Nettoyage du buffer s'il existe et est valide
-		if buf_id and vim.api.nvim_buf_is_valid(buf_id) then
-			vim.api.nvim_buf_delete(buf_id, { force = true })
-		end
-
-		-- Réinitialisation de l'état
-		M.state.win_id = nil
-		M.state.buf_id = nil
-	end
-end
 
 return M
