@@ -44,6 +44,11 @@ function FormatterService:format(file_diagnostics_map)
         table.insert(output, "")
     end
     
+    -- Remove trailing blank lines
+    while #output > 0 and output[#output] == "" do
+        table.remove(output)
+    end
+    
     return table.concat(output, "\n")
 end
 

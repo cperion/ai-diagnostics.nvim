@@ -14,8 +14,10 @@ function WindowService:new()
         position = nil,
     }, self)
     
-    -- Setup cleanup on exit
+    -- Setup cleanup on exit with a unique group
+    local group = vim.api.nvim_create_augroup("AIDiagnosticsWindowService", { clear = true })
     vim.api.nvim_create_autocmd("VimLeavePre", {
+        group = group,
         callback = function()
             instance:cleanup()
         end,

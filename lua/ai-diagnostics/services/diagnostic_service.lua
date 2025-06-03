@@ -38,7 +38,7 @@ function DiagnosticService:get_buffer_diagnostics(bufnr)
         return Result:err("Buffer has no file name")
     end
     
-    -- Check for LSP clients
+    -- Check for LSP clients (optional - we still show diagnostics without LSP)
     local clients = vim.lsp.get_clients({ bufnr = bufnr })
     if #clients == 0 then
         self.logger:debug("No LSP clients for buffer " .. tostring(bufnr))
