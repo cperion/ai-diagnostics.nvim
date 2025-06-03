@@ -367,3 +367,182 @@ sequenceDiagram
 ```
 
 This approach provides a clear path from the current state to a more maintainable, testable, and performant codebase while allowing for gradual migration.
+
+## Implementation Details - File Operations
+
+### Phase 1: Create Data Model Layer
+
+#### New Files to Create:
+1. **lua/ai-diagnostics/models/diagnostic.lua**
+   - Encapsulates a single diagnostic with its context
+   - Handles line number conversions (0-based to 1-based)
+   - Immutable data structure
+
+2. **lua/ai-diagnostics/models/file_diagnostics.lua**
+   - Groups diagnostics by file
+   - Replaces parallel array pattern
+   - Provides iteration methods
+
+3. **lua/ai-diagnostics/models/diagnostic_context.lua**
+   - Represents context lines for a diagnostic
+   - Handles line range calculations
+   - Provides formatting methods
+
+### Phase 2: Refactor Core Services
+
+#### New Files to Create:
+1. **lua/ai-diagnostics/services/diagnostic_service.lua**
+   - Consolidates diagnostic collection logic from init.lua
+   - Handles buffer validation and LSP client checks
+   - Returns Result types for error handling
+
+2. **lua/ai-diagnostics/services/formatter_service.lua**
+   - Replaces format.lua functionality
+   - Uses data models instead of arrays
+   - Simplified merge logic
+
+3. **lua/ai-diagnostics/services/window_service.lua**
+   - Instance-based window management
+   - Replaces ui.lua module-level state
+   - Clear lifecycle management
+
+#### Files to Modify:
+1. **lua/ai-diagnostics/format.lua**
+   - Remove `to_number()` function (moved to models)
+   - Remove `merge_contexts()` (moved to formatter service)
+   - Keep as thin adapter during migration
+
+2. **lua/ai-diagnostics/grouping.lua**
+   - Remove unused `merge_contexts()` function
+   - Refactor `group_by_file()` to use data models
+   - Eventually merge into formatter service
+
+3. **lua/ai-diagnostics/context.lua**
+   - Refactor to use DiagnosticContext model
+   - Remove direct buffer line access
+   - Return Result types
+
+### Phase 3: Simplify Infrastructure
+
+#### New Files to Create:
+1. **lua/ai-diagnostics/infrastructure/logger.lua**
+   - Simple synchronous logging
+   - No write queues or throttling
+   - Direct file I/O
+
+2. **lua/ai-diagnostics/infrastructure/config_validator.lua**
+   - Comprehensive config validation
+   - Semantic checks, not just types
+   - Default value handling
+
+#### Files to Modify:
+1. **lua/ai-diagnostics/log.lua**
+   - Replace with simple logger.lua
+   - Remove async complexity
+   - Keep same API temporarily
+
+2. **lua/ai-diagnostics/config.lua**
+   - Add validation schemas
+   - Move validation logic out of init.lua
+   - Add config migration helpers
+
+3. **lua/ai-diagnostics/ui.lua**
+   - Convert to instance-based WindowService
+   - Remove module-level state
+   - Add proper cleanup methods
+
+### Phase 4: Clean Public API
+
+#### Files to Modify:
+1. **lua/ai-diagnostics/init.lua**
+   - Remove dead `M.close_window()` function
+   - Remove direct UI manipulation
+   - Delegate to services
+   - Simplify to facade pattern
+   - Remove duplicate error handling
+
+2. **lua/ai-diagnostics/utils.lua**
+   - Add Result type implementation
+   - Add Option type for nil handling
+   - Keep existing utility functions
+
+### Phase 5: Testing Infrastructure
+
+#### New Files to Create:
+1. **tests/unit/models/diagnostic_spec.lua**
+   - Test data model creation
+   - Test line number conversions
+   - Test immutability
+
+2. **tests/unit/services/diagnostic_service_spec.lua**
+   - Test diagnostic collection
+   - Test error handling
+   - Mock buffer/LSP APIs
+
+3. **tests/unit/services/formatter_service_spec.lua**
+   - Test formatting logic
+   - Test context merging
+   - Test edge cases
+
+4. **tests/integration/window_spec.lua**
+   - Test window lifecycle
+   - Test content updates
+   - Test position changes
+
+### Phase 6: Cleanup
+
+#### Files to Delete (after migration):
+1. **lua/ai-diagnostics/grouping.lua** - Functionality absorbed into formatter service
+2. **lua/ai-diagnostics/format.lua** - Replaced by formatter service
+3. **lua/ai-diagnostics/context.lua** - Replaced by diagnostic context model
+
+#### Files to Rename:
+1. **lua/ai-diagnostics/log.lua** → **lua/ai-diagnostics/legacy/log.lua** (temporary during migration)
+2. **lua/ai-diagnostics/ui.lua** → **lua/ai-diagnostics/legacy/ui.lua** (temporary during migration)
+
+### Directory Structure After Refactoring:
+
+```
+lua/ai-diagnostics/
+├── init.lua                    # Public API (simplified)
+├── config.lua                  # Configuration with schemas
+├── utils.lua                   # Utilities + Result/Option types
+├── models/
+│   ├── diagnostic.lua          # Diagnostic data model
+│   ├── file_diagnostics.lua   # File grouping model
+│   └── diagnostic_context.lua  # Context data model
+├── services/
+│   ├── diagnostic_service.lua  # Core diagnostic logic
+│   ├── formatter_service.lua   # Formatting logic
+│   └── window_service.lua      # Window management
+├── infrastructure/
+│   ├── logger.lua             # Simple logging
+│   └── config_validator.lua   # Config validation
+└── legacy/                    # Temporary during migration
+    ├── log.lua
+    └── ui.lua
+```
+
+### Migration Script
+A migration script could be created to help users transition:
+
+```lua
+-- lua/ai-diagnostics/migrate.lua
+local M = {}
+
+function M.check_breaking_changes()
+    -- Check for deprecated function usage
+    -- Warn about config changes
+    -- Suggest updates
+end
+
+function M.migrate_config(old_config)
+    -- Transform old config format to new
+    -- Add missing defaults
+    -- Validate result
+end
+
+return M
+```
+
+This phased approach allows for gradual migration while maintaining backwards compatibility during the transition period. Each phase can be completed and tested independently before moving to the next.
