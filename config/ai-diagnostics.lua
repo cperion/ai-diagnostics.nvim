@@ -19,7 +19,7 @@ return {
 
 		-- Add keymaps
 		vim.keymap.set("n", "<leader>ad", function()
-			require("ai-diagnostics").toggle_window("right")
+			require("ai-diagnostics").toggle_diagnostics_window("right")
 		end, { desc = "Toggle AI Diagnostics window" })
 
 	end,

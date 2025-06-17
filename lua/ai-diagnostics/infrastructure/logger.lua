@@ -5,19 +5,14 @@
 local Logger = {}
 Logger.__index = Logger
 
--- Log levels
-Logger.levels = {
-    DEBUG = 1,
-    INFO = 2,
-    WARN = 3,
-    ERROR = 4,
-}
-
+-- Map numeric levels to string representations
 local level_strings = {
-    [1] = "DEBUG",
-    [2] = "INFO",
-    [3] = "WARN",
-    [4] = "ERROR",
+    [vim.log.levels.DEBUG] = "DEBUG",
+    [vim.log.levels.INFO] = "INFO",
+    [vim.log.levels.WARN] = "WARN",
+    [vim.log.levels.ERROR] = "ERROR",
+    [vim.log.levels.TRACE] = "TRACE",
+    [vim.log.levels.OFF] = "OFF",
 }
 
 ---Create a new logger instance
@@ -26,7 +21,7 @@ local level_strings = {
 function Logger:new(config)
     local instance = setmetatable({}, self)
     
-    instance.level = config.level or Logger.levels.INFO
+    instance.level = config.level or vim.log.levels.INFO
     instance.file = config.file
     
     if instance.file then
@@ -55,7 +50,7 @@ function Logger:log(level, message)
     end
     
     local timestamp = os.date("%Y-%m-%d %H:%M:%S")
-    local formatted = string.format("[%s] [%s] %s\n", timestamp, level_strings[level], message)
+    local formatted = string.format("[%s] [%s] %s\n", timestamp, level_strings[level] or "UNKNOWN", message)
     
     if self.file_handle then
         self.file_handle:write(formatted)
@@ -66,25 +61,25 @@ end
 ---Log debug message
 ---@param message string
 function Logger:debug(message)
-    self:log(Logger.levels.DEBUG, message)
+    self:log(vim.log.levels.DEBUG, message)
 end
 
 ---Log info message
 ---@param message string
 function Logger:info(message)
-    self:log(Logger.levels.INFO, message)
+    self:log(vim.log.levels.INFO, message)
 end
 
 ---Log warning message
 ---@param message string
 function Logger:warn(message)
-    self:log(Logger.levels.WARN, message)
+    self:log(vim.log.levels.WARN, message)
 end
 
 ---Log error message
 ---@param message string
 function Logger:error(message)
-    self:log(Logger.levels.ERROR, message)
+    self:log(vim.log.levels.ERROR, message)
 end
 
 ---Close the logger

@@ -45,8 +45,14 @@ function M.setup(user_config)
 
 	-- Initialize new logger
 	if M.config.log and M.config.log.enabled then
+		local log_level_map = {
+			DEBUG = vim.log.levels.DEBUG,
+			INFO = vim.log.levels.INFO,
+			WARN = vim.log.levels.WARN,
+			ERROR = vim.log.levels.ERROR,
+		}
 		local log_config = {
-			level = M.config.log.level == "DEBUG" and Logger.levels.DEBUG or Logger.levels.INFO,
+			level = log_level_map[M.config.log.level] or vim.log.levels.INFO,
 			file = M.config.log.file or vim.fn.stdpath("cache") .. "/ai-diagnostics.log",
 		}
 		M._logger = Logger:new(log_config)
@@ -159,7 +165,7 @@ end
 
 ---Toggle the diagnostics window
 ---@param position string|nil "bottom" or "right" (defaults to "bottom")
-function M.toggle_window(position)
+function M.toggle_diagnostics_window(position)
 	if M._window_service:is_open() then
 		M.close_diagnostics_window()
 	else
