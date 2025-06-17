@@ -160,7 +160,11 @@ end
 ---Toggle the diagnostics window
 ---@param position string|nil "bottom" or "right" (defaults to "bottom")
 function M.toggle_window(position)
-	M._window_service:toggle(position)
+	if M._window_service:is_open() then
+		M.close_diagnostics_window()
+	else
+		M.show_diagnostics_window(position)
+	end
 end
 
 
