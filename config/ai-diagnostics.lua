@@ -21,5 +21,6 @@ return {
 		vim.keymap.set("n", "<leader>ad", function()
 			require("ai-diagnostics").toggle_window("right")
 		end, { desc = "Toggle AI Diagnostics window" })
+
 	end,
 }
